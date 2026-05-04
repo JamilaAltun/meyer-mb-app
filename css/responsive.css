@@ -1,0 +1,159 @@
+/* ═══════════════════════════════════════════════════════
+   MEYER METALLBAU — Responsive (Tablet & Mobile)
+═══════════════════════════════════════════════════════ */
+
+/* ── Tablet (bis 1024px) ── */
+@media (max-width: 1024px) {
+  :root { --sidebar-width: 220px; }
+  .form-row-3 { grid-template-columns: 1fr 1fr; }
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  .chat-list { width: 220px; }
+}
+
+/* ── Mobil & Tablet (bis 768px) ── */
+@media (max-width: 768px) {
+  /* Sidebar als Drawer */
+  .sidebar {
+    transform: translateX(-100%);
+    z-index: 300;
+    width: 260px;
+  }
+  .sidebar.open {
+    transform: translateX(0);
+    box-shadow: 4px 0 20px rgba(0,0,0,0.3);
+  }
+  .sidebar-close-btn { display: flex; }
+
+  /* Main nimmt volle Breite */
+  .main-wrapper { margin-left: 0; }
+
+  /* Topbar sichtbar */
+  .topbar { display: flex; }
+
+  /* Content Padding reduzieren */
+  .main-content { padding: 1rem; }
+
+  /* Sidebar Overlay */
+  .sidebar-overlay.open { display: block; }
+
+  /* KPIs: 2 Spalten */
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  .kpi-value { font-size: 1.5rem; }
+
+  /* Tabellen: horizontal scrollen */
+  .table-wrapper { overflow-x: auto; }
+  table { min-width: 600px; }
+
+  /* Modul Header */
+  .module-header { flex-direction: column; align-items: flex-start; }
+  .module-actions { width: 100%; justify-content: flex-start; }
+
+  /* Form rows: 1 Spalte */
+  .form-row, .form-row-3 { grid-template-columns: 1fr; }
+
+  /* Modal: volle Breite */
+  .modal-box { max-height: 95vh; border-radius: var(--radius) var(--radius) 0 0; }
+  .modal-overlay { align-items: flex-end; padding: 0; }
+
+  /* Profil Panel */
+  .profile-panel { width: 100%; }
+
+  /* Workflow Bar */
+  .workflow-bar { gap: .3rem; padding: .5rem .75rem; }
+  .wf-step { font-size: .72rem; padding: .3rem .5rem; }
+
+  /* Chat Layout */
+  .chat-layout { flex-direction: column; height: auto; }
+  .chat-list { width: 100%; border-right: none; border-bottom: 1px solid var(--card-border); max-height: 160px; }
+  .chat-window { min-height: 300px; }
+  .chat-messages { max-height: 250px; }
+
+  /* Kalender */
+  .calendar-grid { font-size: .7rem; }
+  .cal-day { min-height: 60px; }
+  .cal-event { display: none; }
+  .cal-day-num { font-size: .72rem; }
+
+  /* Zeiterfassung */
+  .zeit-clock-display { font-size: 3rem; }
+  .zeit-big-btn { min-width: 100px; padding: .75rem 1.25rem; font-size: .9rem; }
+
+  /* Detail Grid */
+  .detail-grid { grid-template-columns: 1fr 1fr; }
+
+  /* Sync Indicator */
+  .sync-indicator { left: 1rem; bottom: .75rem; }
+
+  /* Toast */
+  .toast-container { left: 1rem; right: 1rem; bottom: 1rem; }
+  .toast { min-width: unset; }
+
+  /* Tabs: scrollen */
+  .tabs { overflow-x: auto; }
+  .tab-btn { padding: .55rem .85rem; font-size: .82rem; }
+
+  /* Positions Tabelle */
+  .positions-table-wrapper { overflow-x: auto; }
+  .positions-table { min-width: 500px; }
+}
+
+/* ── Kleines Mobil (bis 480px) ── */
+@media (max-width: 480px) {
+  .kpi-grid { grid-template-columns: 1fr 1fr; }
+  .kpi-value { font-size: 1.3rem; }
+  .kpi-card { padding: 1rem .75rem; }
+  .main-content { padding: .75rem; }
+
+  .login-card { padding: 2rem 1.25rem; }
+  .login-title { font-size: 1.2rem; }
+
+  .zeit-clock-display { font-size: 2.5rem; }
+  .zeit-clock-buttons { gap: .6rem; }
+  .zeit-big-btn { min-width: 80px; padding: .65rem 1rem; font-size: .85rem; }
+
+  .detail-grid { grid-template-columns: 1fr; }
+
+  .foto-grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); }
+
+  .module-title { font-size: 1.1rem; }
+
+  .sidebar-logo-text { font-size: .82rem; }
+
+  .table-toolbar { flex-direction: column; align-items: flex-start; }
+  .table-search { max-width: 100%; width: 100%; }
+}
+
+/* ── Landscape Mobil ── */
+@media (max-width: 768px) and (orientation: landscape) {
+  .zeit-clock-card { padding: 1.25rem; }
+  .zeit-clock-display { font-size: 2.5rem; }
+}
+
+/* ── Print Styles ── */
+@media print {
+  .sidebar, .topbar, .toast-container, .sync-indicator,
+  .btn, .table-toolbar, .modal-overlay { display: none !important; }
+  .main-wrapper { margin-left: 0; }
+  .main-content { padding: 0; }
+  body { background: white; }
+  .card, .table-wrapper { box-shadow: none; border: 1px solid #ddd; }
+}
+
+/* ── iPad Pro & größere Tablets ── */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .sidebar-logo-text { font-size: .82rem; }
+  .nav-label { font-size: .82rem; }
+
+  /* Sidebar immer sichtbar auf Tablets (Querformat) */
+  .sidebar { transform: none; }
+  .main-wrapper { margin-left: var(--sidebar-width); }
+  .topbar { display: none; }
+}
+
+/* ── iPad Portrait ── */
+@media (min-width: 769px) and (max-width: 1024px) and (orientation: portrait) {
+  .sidebar { transform: translateX(-100%); }
+  .sidebar.open { transform: translateX(0); }
+  .main-wrapper { margin-left: 0; }
+  .topbar { display: flex; }
+}

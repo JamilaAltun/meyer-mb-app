@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Meyer Metallbau" />
+  <title>Meyer Metallbau GmbH</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/components.css" />
+  <link rel="stylesheet" href="css/responsive.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════
+     LOGIN-SCREEN
+═══════════════════════════════════════════ -->
+<div id="login-screen" class="login-screen">
+  <div class="login-card">
+    <div class="login-logo">
+      <img id="login-logo-img" src="assets/logo-placeholder.svg" alt="Meyer Metallbau" />
+    </div>
+    <h1 class="login-title">Meyer Metallbau GmbH</h1>
+    <p class="login-subtitle">Bitte melden Sie sich an</p>
+
+    <div class="login-form">
+      <div class="form-group">
+        <label class="form-label">Mitarbeiter auswählen</label>
+        <select id="login-user-select" class="form-select">
+          <option value="">— Bitte wählen —</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">PIN</label>
+        <div class="pin-input-wrapper">
+          <input id="login-pin" type="password" class="form-input pin-input" maxlength="4" placeholder="••••" inputmode="numeric" />
+        </div>
+      </div>
+      <div id="login-error" class="login-error hidden">Falscher PIN. Bitte erneut versuchen.</div>
+      <button id="login-btn" class="btn btn-primary btn-full btn-lg">Anmelden</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     APP-SHELL (nach Login sichtbar)
+═══════════════════════════════════════════ -->
+<div id="app-shell" class="app-shell hidden">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <!-- Logo -->
+    <div class="sidebar-logo">
+      <img id="sidebar-logo-img" src="assets/logo-placeholder.svg" alt="Meyer Metallbau" class="sidebar-logo-img" />
+      <span class="sidebar-logo-text">Meyer Metallbau</span>
+    </div>
+
+    <!-- Hamburger (mobile) -->
+    <button class="sidebar-close-btn" id="sidebar-close-btn" aria-label="Menü schließen">✕</button>
+
+    <!-- Globale Suche -->
+    <div class="sidebar-search">
+      <input type="text" id="global-search" placeholder="🔍 Suchen..." class="sidebar-search-input" />
+      <div id="search-results" class="search-results hidden"></div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="sidebar-nav" id="sidebar-nav">
+      <a href="#" class="nav-item active" data-module="dashboard" data-perm="dashboard">
+        <span class="nav-icon"><i class="fa-solid fa-gauge-high"></i></span>
+        <span class="nav-label">Dashboard</span>
+      </a>
+      <a href="#" class="nav-item" data-module="kunden" data-perm="kunden">
+        <span class="nav-icon"><i class="fa-solid fa-users"></i></span>
+        <span class="nav-label">Kunden</span>
+      </a>
+      <a href="#" class="nav-item" data-module="anfragen" data-perm="anfragen">
+        <span class="nav-icon"><i class="fa-solid fa-file-lines"></i></span>
+        <span class="nav-label">Anfragen & Angebote</span>
+      </a>
+      <a href="#" class="nav-item" data-module="auftraege" data-perm="auftraege">
+        <span class="nav-icon"><i class="fa-solid fa-clipboard-list"></i></span>
+        <span class="nav-label">Aufträge</span>
+      </a>
+      <a href="#" class="nav-item" data-module="nachkalkulation" data-perm="nachkalkulation">
+        <span class="nav-icon"><i class="fa-solid fa-chart-bar"></i></span>
+        <span class="nav-label">Nachkalkulation</span>
+      </a>
+      <a href="#" class="nav-item" data-module="rechnungen" data-perm="rechnungen">
+        <span class="nav-icon"><i class="fa-solid fa-file-invoice-dollar"></i></span>
+        <span class="nav-label">Rechnungen</span>
+      </a>
+      <a href="#" class="nav-item" data-module="aufgaben" data-perm="aufgaben">
+        <span class="nav-icon"><i class="fa-solid fa-list-check"></i></span>
+        <span class="nav-label">Aufgaben</span>
+        <span class="nav-badge hidden" id="badge-aufgaben">0</span>
+      </a>
+      <a href="#" class="nav-item" data-module="kalender" data-perm="kalender">
+        <span class="nav-icon"><i class="fa-solid fa-calendar-days"></i></span>
+        <span class="nav-label">Kalender</span>
+      </a>
+      <a href="#" class="nav-item" data-module="chat" data-perm="chat">
+        <span class="nav-icon"><i class="fa-solid fa-comments"></i></span>
+        <span class="nav-label">Chat</span>
+        <span class="nav-badge hidden" id="badge-chat">0</span>
+      </a>
+      <a href="#" class="nav-item" data-module="urlaub" data-perm="urlaub">
+        <span class="nav-icon"><i class="fa-solid fa-umbrella-beach"></i></span>
+        <span class="nav-label">Urlaub</span>
+        <span class="nav-badge hidden" id="badge-urlaub">0</span>
+      </a>
+      <a href="#" class="nav-item" data-module="tickets" data-perm="tickets">
+        <span class="nav-icon"><i class="fa-solid fa-ticket"></i></span>
+        <span class="nav-label">Tickets</span>
+        <span class="nav-badge hidden" id="badge-tickets">0</span>
+      </a>
+      <a href="#" class="nav-item" data-module="einstellungen" data-perm="einstellungen">
+        <span class="nav-icon"><i class="fa-solid fa-gear"></i></span>
+        <span class="nav-label">Einstellungen</span>
+      </a>
+    </nav>
+
+    <!-- Spacer -->
+    <div class="sidebar-spacer"></div>
+
+    <!-- Zeiterfassung Widget (sticky) -->
+    <div class="sidebar-zeiterfassung" id="sidebar-zeiterfassung">
+      <div class="zeit-status-dot" id="zeit-status-dot"></div>
+      <div class="zeit-info">
+        <div class="zeit-timer" id="sidebar-timer">00:00:00</div>
+        <div class="zeit-label" id="sidebar-zeit-label">Nicht eingestempelt</div>
+      </div>
+      <div class="zeit-actions" id="sidebar-zeit-actions">
+        <button class="zeit-btn zeit-btn-start" id="sidebar-start-btn" title="Start">▶</button>
+        <button class="zeit-btn zeit-btn-pause hidden" id="sidebar-pause-btn" title="Pause">⏸</button>
+        <button class="zeit-btn zeit-btn-stop hidden" id="sidebar-stop-btn" title="Gehen">🚪</button>
+      </div>
+    </div>
+
+    <!-- User Profile (bottom, sticky) -->
+    <div class="sidebar-user" id="sidebar-user" role="button" tabindex="0">
+      <div class="user-avatar" id="user-avatar">?</div>
+      <div class="user-info">
+        <div class="user-name" id="user-name">Nicht angemeldet</div>
+        <div class="user-position" id="user-position">—</div>
+      </div>
+      <span class="user-chevron">›</span>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <div class="main-wrapper">
+    <!-- Top Bar (mobile) -->
+    <header class="topbar" id="topbar">
+      <button class="hamburger-btn" id="hamburger-btn" aria-label="Menü öffnen">☰</button>
+      <span class="topbar-title" id="topbar-title">Dashboard</span>
+      <div class="topbar-actions">
+        <button class="topbar-notif-btn" id="topbar-notif-btn" title="Benachrichtigungen">🔔</button>
+      </div>
+    </header>
+
+    <!-- Content Area -->
+    <main class="main-content" id="main-content">
+      <div class="content-loading" id="content-loading">
+        <div class="spinner"></div>
+        <p>Laden...</p>
+      </div>
+    </main>
+  </div>
+
+  <!-- Sidebar Overlay (mobile) -->
+  <div class="sidebar-overlay hidden" id="sidebar-overlay"></div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     PROFIL-PANEL
+═══════════════════════════════════════════ -->
+<div id="profile-panel" class="profile-panel hidden">
+  <div class="profile-panel-header">
+    <div class="profile-avatar-large" id="profile-avatar-large">?</div>
+    <button class="profile-close-btn" id="profile-close-btn">✕</button>
+  </div>
+  <div class="profile-panel-body">
+    <h2 id="profile-name-display">—</h2>
+    <p id="profile-position-display" class="profile-position">—</p>
+    <div class="profile-fields" id="profile-fields">
+      <!-- dynamisch befüllt -->
+    </div>
+    <div class="profile-actions">
+      <div class="profile-darkmode-row">
+        <span>Dark Mode</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="darkmode-toggle" />
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <button class="btn btn-secondary btn-full" id="profile-edit-btn">Profil bearbeiten</button>
+      <button class="btn btn-danger btn-full" id="logout-btn">Abmelden</button>
+    </div>
+  </div>
+</div>
+<div class="profile-overlay hidden" id="profile-overlay"></div>
+
+<!-- ═══════════════════════════════════════════
+     MODAL (universal)
+═══════════════════════════════════════════ -->
+<div id="modal-overlay" class="modal-overlay hidden">
+  <div id="modal-box" class="modal-box">
+    <div class="modal-header">
+      <h3 id="modal-title">Titel</h3>
+      <button class="modal-close" id="modal-close-btn">✕</button>
+    </div>
+    <div id="modal-body" class="modal-body">
+      <!-- dynamisch -->
+    </div>
+    <div id="modal-footer" class="modal-footer hidden">
+      <!-- dynamisch -->
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     TOAST NOTIFICATIONS
+═══════════════════════════════════════════ -->
+<div id="toast-container" class="toast-container"></div>
+
+<!-- ═══════════════════════════════════════════
+     SCRIPTS
+═══════════════════════════════════════════ -->
+<script src="js/config.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/notifications.js"></script>
+<script src="js/pdf.js"></script>
+<script src="js/signature.js"></script>
+<script src="js/zeiterfassung.js"></script>
+<script src="js/dashboard.js"></script>
+<script src="js/kunden.js"></script>
+<script src="js/anfragen.js"></script>
+<script src="js/auftraege.js"></script>
+<script src="js/nachkalkulation.js"></script>
+<script src="js/rechnungen.js"></script>
+<script src="js/aufgaben.js"></script>
+<script src="js/kalender.js"></script>
+<script src="js/chat.js"></script>
+<script src="js/urlaub.js"></script>
+<script src="js/tickets.js"></script>
+<script src="js/einstellungen.js"></script>
+<script src="js/app.js"></script>
+
+</body>
+</html>
