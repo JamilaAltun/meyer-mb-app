@@ -70,7 +70,7 @@ const modules = {
 };
 
 async function navigateTo(moduleName) {
-  if (!Auth.can(moduleName) && moduleName !== 'dashboard') {
+  if (!Auth.can(moduleName) && moduleName !== 'dashboard' && moduleName !== 'zeiterfassung') {
     showToast('Kein Zugriff auf diesen Bereich', 'error');
     return;
   }

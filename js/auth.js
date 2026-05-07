@@ -29,6 +29,7 @@ const Auth = {
   can(permission) {
     if (!this.currentUser) return false;
     if (this.currentUser.rolle === 'admin') return true;
+    if (permission === 'zeiterfassung') return true; // jeder Mitarbeiter hat Zugriff
     const perms = this.currentUser.berechtigungen || {};
     return !!perms[permission];
   },
