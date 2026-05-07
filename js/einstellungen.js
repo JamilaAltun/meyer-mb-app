@@ -5,7 +5,7 @@ const EinstellungenModule = {
     setContent(`
       <div class="module-header"><div class="module-title">Einstellungen</div></div>
       <div class="tabs">
-        ${[['firma','Firmendaten'],['logo','Logo'],['mitarbeiter','Mitarbeiter & Berechtigungen'],['nummern','Nummernkreise'],['zahlung','Zahlungsbedingungen'],['zeiterfassung','Zeiterfassung']].map(([k,l]) =>
+        ${[['firma','Firmendaten'],['logo','Logo'],['mitarbeiter','Mitarbeiter & Berechtigungen'],['nummern','Nummernkreise'],['zahlung','Zahlungsbedingungen'],['zeiterfassung','Zeiterfassung'],['demo','Demo-Daten']].map(([k,l]) =>
           `<div class="tab-btn ${this.activeTab===k?'active':''}" onclick="EinstellungenModule.activeTab='${k}';EinstellungenModule.renderTab()">${l}</div>`
         ).join('')}
       </div>
@@ -19,7 +19,7 @@ const EinstellungenModule = {
       const tabs = ['firma','logo','mitarbeiter','nummern','zahlung','zeiterfassung'];
       b.classList.toggle('active', tabs.some((t,i) => b.getAttribute('onclick')?.includes(`'${t}'`) && this.activeTab === t));
     });
-    const map = { firma: () => this.renderFirma(), logo: () => this.renderLogo(), mitarbeiter: () => this.renderMitarbeiter(), nummern: () => this.renderNummern(), zahlung: () => this.renderZahlung(), zeiterfassung: () => this.renderZeiterfassung() };
+    const map = { firma: () => this.renderFirma(), logo: () => this.renderLogo(), mitarbeiter: () => this.renderMitarbeiter(), nummern: () => this.renderNummern(), zahlung: () => this.renderZahlung(), zeiterfassung: () => this.renderZeiterfassung(), demo: () => this.renderDemo() };
     map[this.activeTab]?.();
   },
 
@@ -97,7 +97,8 @@ const EinstellungenModule = {
     reader.onload = e => {
       Settings.set({ logo_url: e.target.result });
       document.getElementById('sidebar-logo-img').src = e.target.result;
-      document.getElementById('login-logo-img').src = e.target.result;
+      const loginLogo = document.getElementById('login-logo-img');
+      if (loginLogo) loginLogo.src = e.target.result;
       showToast('Logo gespeichert', 'success');
       this.renderLogo();
     };
@@ -113,8 +114,8 @@ const EinstellungenModule = {
 
   async renderMitarbeiter() {
     const users = await DB.getAll('users');
-    const perms = ['dashboard','kunden','anfragen','auftraege','nachkalkulation','rechnungen','aufgaben','kalender','chat','urlaub','tickets','einstellungen'];
-    const permLabels = { dashboard:'Dashboard', kunden:'Kunden', anfragen:'Angebote', auftraege:'Aufträge', nachkalkulation:'Nachkalk.', rechnungen:'Rechnungen', aufgaben:'Aufgaben', kalender:'Kalender', chat:'Chat', urlaub:'Urlaub', tickets:'Tickets', einstellungen:'Einstellungen' };
+    const perms = ['dashboard','kunden','anfragen','auftraege','nachkalkulation','rechnungen','aufgaben','kalender','zeiterfassung','chat','urlaub','tickets','einstellungen'];
+    const permLabels = { dashboard:'Dashboard', kunden:'Kunden', anfragen:'Angebote', auftraege:'Aufträge', nachkalkulation:'Nachkalk.', rechnungen:'Rechnungen', aufgaben:'Aufgaben', kalender:'Kalender', zeiterfassung:'Zeiterfassung', chat:'Chat', urlaub:'Urlaub', tickets:'Tickets', einstellungen:'Einstellungen' };
 
     document.getElementById('einst-tab-content').innerHTML = `
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;flex-wrap:wrap;gap:.75rem">
@@ -311,7 +312,7 @@ ${s.firma_name || 'Meyer Metallbau GmbH'}`
           ${kategorien.length ? kategorien.map((k, i) => `
             <div style="display:flex;align-items:center;justify-content:space-between;padding:.5rem .75rem;background:var(--bg);border-radius:var(--radius);margin-bottom:.4rem">
               <span style="font-weight:500">${k}</span>
-              <button class="btn btn-danger btn-sm" onclick="EinstellungenModule.removeZeitKategorie(${i})">✕ Entfernen</button>
+              <button class="btn btn-danger btn-sm" onclick="EinstellungenModule.removeZeitKategorie(${i})">Entfernen</button>
             </div>`).join('')
           : '<p style="color:var(--text-muted);font-size:.85rem;padding:.5rem 0">Noch keine Kategorien definiert</p>'}
         </div>
@@ -338,5 +339,52 @@ ${s.firma_name || 'Meyer Metallbau GmbH'}`
     kategorien.splice(index, 1);
     Settings.set({ zeit_kategorien: kategorien });
     this.renderZeiterfassung();
+  },
+
+  renderDemo() {
+    document.getElementById('einst-tab-content').innerHTML = `
+      <div class="card" style="max-width:560px">
+        <div class="card-header"><span class="card-title">Demo-Daten</span></div>
+        <p style="font-size:.875rem;color:var(--text-muted);margin-bottom:1.25rem;line-height:1.6">
+          Lädt realistische Musterdaten (Kunden, Anfragen, Angebote, Aufträge, Rechnungen, Nachkalkulation) in die App, damit alle Bereiche direkt befüllt angezeigt werden.
+        </p>
+
+        <div style="background:var(--bg);border-radius:var(--radius);padding:1rem;margin-bottom:1.25rem;font-size:.85rem;line-height:1.7">
+          <div style="font-weight:700;margin-bottom:.5rem;font-size:.9rem">Enthaltene Beispieldaten:</div>
+          <div><strong>Kunden:</strong> Baugesellschaft Müller GmbH · Hans Schmidt · Architekturbüro Weber</div>
+          <div><strong>Anfragen:</strong> Treppengeländer · Einfahrtstor · Balkongeländer</div>
+          <div><strong>Angebote:</strong> A-2025-001 (angenommen) · A-2025-002 (gesendet) · A-2025-003 (Entwurf)</div>
+          <div><strong>Aufträge:</strong> AU-2025-001 (Montage) · AU-2025-002 (Fertig)</div>
+          <div><strong>Rechnungen:</strong> R-2025-001 Abschlag (offen) · R-2025-002 Schluss (bezahlt)</div>
+          <div><strong>Nachkalkulation:</strong> Soll/Ist-Werte für beide Aufträge</div>
+        </div>
+
+        <div style="display:flex;gap:.75rem;flex-wrap:wrap">
+          <button class="btn btn-primary" onclick="EinstellungenModule.confirmLoadDemo()">
+            Demo-Daten laden
+          </button>
+          <button class="btn btn-danger" onclick="EinstellungenModule.confirmClearDemo()">
+            Demo-Daten löschen
+          </button>
+        </div>
+        <p style="font-size:.78rem;color:var(--text-muted);margin-top:.75rem">
+          Hinweis: Beim Laden werden alle vorhandenen Daten in den genannten Bereichen überschrieben.
+        </p>
+      </div>`;
+  },
+
+  confirmLoadDemo() {
+    openModal('Demo-Daten laden', `
+      <p>Alle vorhandenen Einträge in <strong>Kunden, Anfragen, Angebote, Aufträge, Rechnungen und Nachkalkulation</strong> werden durch die Beispieldaten ersetzt.</p>
+      <p style="margin-top:.5rem">Fortfahren?</p>
+    `, () => { closeModal(); DemoData.load(); }, 'Ja, laden');
+  },
+
+  confirmClearDemo() {
+    openModal('Demo-Daten löschen', `
+      <p>Alle Einträge in <strong>Kunden, Anfragen, Angebote, Aufträge, Rechnungen und Nachkalkulation</strong> werden gelöscht.</p>
+      <p style="margin-top:.5rem">Wirklich löschen?</p>
+    `, () => { closeModal(); DemoData.clear(); }, 'Ja, alles löschen');
+    document.getElementById('modal-confirm-btn').className = 'btn btn-danger';
   },
 };

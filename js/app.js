@@ -6,7 +6,7 @@ let currentModule = null;
 
 /* ── Globale Hilfsfunktionen ── */
 function showToast(message, type = 'info', duration = 3500) {
-  const icons = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
+  const icons = { success: '✓', error: '✗', warning: '!', info: 'i' };
   const container = document.getElementById('toast-container');
   const toast = document.createElement('div');
   toast.className = `toast toast-${type}`;
@@ -66,6 +66,7 @@ const modules = {
   urlaub:          () => UrlaubModule.render(),
   tickets:         () => TicketsModule.render(),
   einstellungen:   () => EinstellungenModule.render(),
+  zeiterfassung:   () => ZeiterfassungModule.render(),
 };
 
 async function navigateTo(moduleName) {
@@ -83,12 +84,12 @@ async function navigateTo(moduleName) {
 
   /* Topbar Titel */
   const labels = {
-    dashboard: '🏠 Dashboard', kunden: '👥 Kunden',
-    anfragen: '📨 Anfragen & Angebote', auftraege: '📋 Aufträge',
-    nachkalkulation: '📊 Nachkalkulation', rechnungen: '🧾 Rechnungen',
-    aufgaben: '✅ Aufgaben', kalender: '📅 Kalender',
-    chat: '💬 Chat', urlaub: '🏖️ Urlaub',
-    tickets: '🎫 Tickets', einstellungen: '⚙️ Einstellungen',
+    dashboard: 'Dashboard', kunden: 'Kunden',
+    anfragen: 'Anfragen & Angebote', auftraege: 'Aufträge',
+    nachkalkulation: 'Nachkalkulation', rechnungen: 'Rechnungen',
+    aufgaben: 'Aufgaben', kalender: 'Kalender',
+    chat: 'Chat', urlaub: 'Urlaub',
+    tickets: 'Tickets', einstellungen: 'Einstellungen',
   };
   document.getElementById('topbar-title').textContent = labels[moduleName] || moduleName;
 
@@ -196,11 +197,11 @@ function initGlobalSearch() {
     if (q.length < 2) { results.classList.add('hidden'); return; }
     searchTimer = setTimeout(async () => {
       const found = await DB.search([
-        { table: 'kunden', label: 'Kunde', icon: '👥', fields: ['name', 'firma', 'telefon'] },
-        { table: 'auftraege', label: 'Auftrag', icon: '📋', fields: ['nummer', 'bezeichnung'] },
-        { table: 'angebote', label: 'Angebot', icon: '📨', fields: ['nummer'] },
-        { table: 'rechnungen', label: 'Rechnung', icon: '🧾', fields: ['nummer'] },
-        { table: 'aufgaben', label: 'Aufgabe', icon: '✅', fields: ['titel', 'beschreibung'] },
+        { table: 'kunden', label: 'Kunde', icon: '', fields: ['name', 'firma', 'telefon'] },
+        { table: 'auftraege', label: 'Auftrag', icon: '', fields: ['nummer', 'bezeichnung'] },
+        { table: 'angebote', label: 'Angebot', icon: '', fields: ['nummer'] },
+        { table: 'rechnungen', label: 'Rechnung', icon: '', fields: ['nummer'] },
+        { table: 'aufgaben', label: 'Aufgabe', icon: '', fields: ['titel', 'beschreibung'] },
       ], q);
       if (!found.length) {
         results.innerHTML = '<div class="search-result-item" style="color:var(--text-muted)">Keine Ergebnisse</div>';

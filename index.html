@@ -24,7 +24,7 @@
 <div id="login-screen" class="login-screen">
   <div class="login-card">
     <div class="login-logo">
-      <img id="login-logo-img" src="assets/logo-placeholder.svg" alt="Meyer Metallbau" />
+      <img id="login-logo-img" src="assets/logo-placeholder.svg" alt="Meyer Metallbau" style="max-height:70px;max-width:200px;object-fit:contain" />
     </div>
     <h1 class="login-title">Meyer Metallbau GmbH</h1>
     <p class="login-subtitle">Bitte melden Sie sich an</p>
@@ -57,8 +57,7 @@
   <aside class="sidebar" id="sidebar">
     <!-- Logo -->
     <div class="sidebar-logo">
-      <img id="sidebar-logo-img" src="assets/logo-placeholder.svg" alt="Meyer Metallbau" class="sidebar-logo-img" />
-      <span class="sidebar-logo-text">Meyer Metallbau</span>
+      <img id="sidebar-logo-img" src="assets/meyermetallbau-logo-4.png" alt="Meyer Metallbau" class="sidebar-logo-img" />
     </div>
 
     <!-- Hamburger (mobile) -->
@@ -66,7 +65,7 @@
 
     <!-- Globale Suche -->
     <div class="sidebar-search">
-      <input type="text" id="global-search" placeholder="🔍 Suchen..." class="sidebar-search-input" />
+      <input type="text" id="global-search" placeholder="Suchen..." class="sidebar-search-input" />
       <div id="search-results" class="search-results hidden"></div>
     </div>
 
@@ -105,6 +104,10 @@
         <span class="nav-icon"><i class="fa-solid fa-calendar-days"></i></span>
         <span class="nav-label">Kalender</span>
       </a>
+      <a href="#" class="nav-item" data-module="zeiterfassung" data-perm="zeiterfassung">
+        <span class="nav-icon"><i class="fa-solid fa-clock"></i></span>
+        <span class="nav-label">Zeiterfassung</span>
+      </a>
       <a href="#" class="nav-item" data-module="chat" data-perm="chat">
         <span class="nav-icon"><i class="fa-solid fa-comments"></i></span>
         <span class="nav-label">Chat</span>
@@ -139,7 +142,7 @@
       <div class="zeit-actions" id="sidebar-zeit-actions">
         <button class="zeit-btn zeit-btn-start" id="sidebar-start-btn" title="Start">▶</button>
         <button class="zeit-btn zeit-btn-pause hidden" id="sidebar-pause-btn" title="Pause">⏸</button>
-        <button class="zeit-btn zeit-btn-stop hidden" id="sidebar-stop-btn" title="Gehen">🚪</button>
+        <button class="zeit-btn zeit-btn-stop hidden" id="sidebar-stop-btn" title="Gehen">Gehen</button>
       </div>
     </div>
 
@@ -161,7 +164,7 @@
       <button class="hamburger-btn" id="hamburger-btn" aria-label="Menü öffnen">☰</button>
       <span class="topbar-title" id="topbar-title">Dashboard</span>
       <div class="topbar-actions">
-        <button class="topbar-notif-btn" id="topbar-notif-btn" title="Benachrichtigungen">🔔</button>
+        <button class="topbar-notif-btn" id="topbar-notif-btn" title="Benachrichtigungen"><i class="fa-solid fa-bell"></i></button>
       </div>
     </header>
 
@@ -252,6 +255,7 @@
 <script src="js/urlaub.js"></script>
 <script src="js/tickets.js"></script>
 <script src="js/einstellungen.js"></script>
+<script src="js/demo-data.js"></script>
 <script src="js/app.js"></script>
 
 </body>

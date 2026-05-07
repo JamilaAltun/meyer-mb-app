@@ -74,7 +74,8 @@ async function initLogin() {
   /* Logo aus Einstellungen */
   const settings = Settings.get();
   if (settings.logo_url) {
-    document.getElementById('login-logo-img').src = settings.logo_url;
+    const logoEl = document.getElementById('login-logo-img');
+    if (logoEl) logoEl.src = settings.logo_url;
   }
 
   /* Login-Button */
@@ -253,10 +254,13 @@ async function ensureDefaultUsers() {
       erstellt_am: new Date().toISOString() },
     { id: 'user-001', name: 'Max Mustermann', position: 'Monteur', rolle: 'mitarbeiter',
       pin_hash: simpleHash('1234'), telefon: '', adresse: '', email: '',
-      berechtigungen: { dashboard: true, auftraege: true, aufgaben: true, kalender: true, tickets: true, chat: true },
+      berechtigungen: { dashboard: true, auftraege: true, aufgaben: true, kalender: true, zeiterfassung: true, tickets: true, chat: true },
       stundensatz: 45, urlaub_tage_gesamt: 28, dark_mode: false, erstellt_am: new Date().toISOString() },
   ];
   LS.set('users', defaults);
+
+  /* Beispieldaten beim ersten Start automatisch laden */
+  DemoData.seed();
 
   /* Standard-Einstellungen */
   if (!Settings.get().firma_name) {
@@ -272,7 +276,7 @@ async function ensureDefaultUsers() {
 
 function allPerms() {
   return { dashboard: true, kunden: true, anfragen: true, auftraege: true, nachkalkulation: true,
-    rechnungen: true, aufgaben: true, kalender: true, chat: true, urlaub: true, tickets: true, einstellungen: true };
+    rechnungen: true, aufgaben: true, kalender: true, zeiterfassung: true, chat: true, urlaub: true, tickets: true, einstellungen: true };
 }
 
 /* Einfacher Hash für PINs (nicht kryptografisch sicher, ausreichend für lokale App) */
