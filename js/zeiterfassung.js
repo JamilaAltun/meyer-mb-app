@@ -235,7 +235,7 @@ const ZeiterfassungModule = {
     }
     if (projektEl) {
       const showProjekt = (this.state.status === 'working' || this.state.status === 'paused') && this.state.projekt_label;
-      projektEl.textContent = showProjekt ? `📋 ${this.state.projekt_label}` : '';
+      projektEl.textContent = showProjekt ? this.state.projekt_label : '';
     }
 
     this.updateTimerDisplay();
@@ -250,27 +250,57 @@ const ZeiterfassungModule = {
     if (el) el.textContent = this.formatElapsed(this.getElapsed());
   },
 
+  /* ── Tabs ── */
+  userTab: 'heute',
+  userMonth: new Date().toISOString().slice(0, 7),
+  _allEntries: [],
+
   /* ── Modul-Seite rendern ── */
   async render() {
     this.loadState();
-    const user = Auth.currentUser;
-    const statusLabel = { idle: 'Nicht eingestempelt', working: 'Eingestempelt', paused: 'Pause', gone: 'Feierabend' };
-    const elapsed = this.getElapsed();
-
-    /* Heutige Einträge laden */
-    let heutes = [];
-    try {
-      const all = await DB.getAll('zeiterfassung', { user_id: Auth.userId() });
-      heutes = all.filter(e => e.datum === today()).sort((a,b) => new Date(a.start_zeit) - new Date(b.start_zeit));
-    } catch (e) { /* offline */ }
-
-    const actionBtns = this.renderActionBtns();
+    try { this._allEntries = await DB.getAll('zeiterfassung', { user_id: Auth.userId() }); } catch { this._allEntries = []; }
 
     setContent(`
       <div class="module-header">
         <div class="module-title">Zeiterfassung</div>
         ${Auth.isAdmin() ? `<button class="btn btn-secondary btn-sm" onclick="ZeiterfassungModule.renderAdmin()">Team-Übersicht</button>` : ''}
       </div>
+      <div class="tabs">
+        ${[['heute','Heute'],['woche','Diese Woche'],['monat','Monat'],['projekte','Projekte']].map(([k,l]) =>
+          `<div class="tab-btn ${this.userTab===k?'active':''}" onclick="ZeiterfassungModule.userTab='${k}';ZeiterfassungModule.renderUserTab()">${l}</div>`
+        ).join('')}
+      </div>
+      <div id="zeit-user-tab" style="margin-top:1.25rem"></div>
+    `);
+
+    this.renderUserTab();
+  },
+
+  renderUserTab() {
+    document.querySelectorAll('.tab-btn').forEach(b => {
+      b.classList.toggle('active', ['heute','woche','monat','projekte'].some(t =>
+        b.getAttribute('onclick')?.includes(`'${t}'`) && this.userTab === t));
+    });
+    const map = {
+      heute:    () => this.renderHeuteTab(),
+      woche:    () => this.renderWocheTab(),
+      monat:    () => this.renderMonatTab(),
+      projekte: () => this.renderProjekteTab(),
+    };
+    map[this.userTab]?.();
+  },
+
+  /* ── Tab: Heute ── */
+  renderHeuteTab() {
+    const user = Auth.currentUser;
+    const statusLabel = { idle: 'Nicht eingestempelt', working: 'Eingestempelt', paused: 'Pause', gone: 'Feierabend' };
+    const elapsed = this.getElapsed();
+    const heutes = this._allEntries
+      .filter(e => e.datum === today())
+      .sort((a,b) => new Date(a.start_zeit) - new Date(b.start_zeit));
+    const totalHeute = heutes.reduce((s, e) => s + (e.gesamt_minuten || 0), 0);
+
+    document.getElementById('zeit-user-tab').innerHTML = `
       <div class="zeit-module">
         <div class="zeit-clock-card">
           <div style="font-size:.875rem;opacity:.7">Guten Tag, ${user?.name || ''}!</div>
@@ -279,32 +309,248 @@ const ZeiterfassungModule = {
           <div class="zeit-clock-status">${statusLabel[this.state.status] || ''}</div>
           ${(this.state.status === 'working' || this.state.status === 'paused') && this.state.projekt_label
             ? `<div style="font-size:.8rem;color:var(--text-muted);margin:.2rem 0">📋 ${this.state.projekt_label}</div>` : ''}
-          <div class="zeit-clock-buttons">${actionBtns}</div>
+          <div class="zeit-clock-buttons">${this.renderActionBtns()}</div>
         </div>
 
         ${heutes.length ? `
         <div class="card">
-          <div class="card-header"><span class="card-title">📋 Heutiges Protokoll</span></div>
+          <div class="card-header">
+            <span class="card-title">📋 Heutiges Protokoll</span>
+            ${totalHeute ? `<span style="font-weight:700;color:var(--navy)">${formatDuration(totalHeute)}</span>` : ''}
+          </div>
           ${this.renderTodayLog(heutes)}
         </div>` : this.state.log.length ? `
         <div class="card">
           <div class="card-header"><span class="card-title">📋 Heutiger Tag</span></div>
           ${this.renderCurrentLog()}
         </div>` : ''}
+      </div>`;
 
-        <div class="card" style="margin-top:1rem">
-          <div class="card-header"><span class="card-title">📅 Diese Woche</span></div>
-          ${await this.renderWeekSummary()}
-        </div>
-      </div>
-    `);
-
-    /* Buttons verdrahten */
     document.getElementById('mod-start-btn')?.addEventListener('click', () => this.start());
     document.getElementById('mod-pause-btn')?.addEventListener('click', () => this.pause());
     document.getElementById('mod-stop-btn')?.addEventListener('click',  () => this.stop());
-
     if (this.state.status === 'working') this.startTimer();
+  },
+
+  /* ── Tab: Diese Woche ── */
+  renderWocheTab() {
+    const now = new Date();
+    const weekStart = new Date(now);
+    weekStart.setDate(now.getDate() - now.getDay() + 1);
+    weekStart.setHours(0,0,0,0);
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 6);
+
+    const wochenEintraege = this._allEntries.filter(e => {
+      const d = new Date(e.datum);
+      return d >= weekStart && d <= weekEnd;
+    });
+
+    const total = wochenEintraege.reduce((s, e) => s + (e.gesamt_minuten || 0), 0);
+    const arbeitstage = [...new Set(wochenEintraege.map(e => e.datum))].length;
+    const schnitt = arbeitstage ? Math.round(total / arbeitstage) : 0;
+    const sollDiff = total - 2400; // Soll 40h = 2400 min
+
+    const dayNames = ['Mo','Di','Mi','Do','Fr','Sa','So'];
+    const days = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(weekStart);
+      d.setDate(weekStart.getDate() + i);
+      const dateStr = d.toISOString().slice(0, 10);
+      const entries = wochenEintraege.filter(e => e.datum === dateStr);
+      const mins = entries.reduce((s, e) => s + (e.gesamt_minuten || 0), 0);
+      return { d, dateStr, entries, mins, name: dayNames[i] };
+    });
+    const maxMins = Math.max(...days.map(d => d.mins), 480);
+
+    document.getElementById('zeit-user-tab').innerHTML = `
+      <!-- Stat-Karten -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:.75rem;margin-bottom:1.25rem">
+        <div class="card" style="text-align:center;padding:1rem .5rem">
+          <div style="font-size:.72rem;color:var(--text-muted);margin-bottom:.2rem">Gesamt Woche</div>
+          <div style="font-size:1.4rem;font-weight:800;color:var(--navy)">${formatDuration(total)}</div>
+        </div>
+        <div class="card" style="text-align:center;padding:1rem .5rem">
+          <div style="font-size:.72rem;color:var(--text-muted);margin-bottom:.2rem">Arbeitstage</div>
+          <div style="font-size:1.4rem;font-weight:800;color:var(--navy)">${arbeitstage} <span style="font-size:.85rem;font-weight:400">Tage</span></div>
+        </div>
+        <div class="card" style="text-align:center;padding:1rem .5rem">
+          <div style="font-size:.72rem;color:var(--text-muted);margin-bottom:.2rem">Ø pro Tag</div>
+          <div style="font-size:1.4rem;font-weight:800;color:var(--navy)">${formatDuration(schnitt)}</div>
+        </div>
+        <div class="card" style="text-align:center;padding:1rem .5rem">
+          <div style="font-size:.72rem;color:var(--text-muted);margin-bottom:.2rem">Soll (40h)</div>
+          <div style="font-size:1.4rem;font-weight:800;color:${sollDiff >= 0 ? 'var(--green)' : 'var(--orange)'}">${sollDiff >= 0 ? '+' : ''}${formatDuration(Math.abs(sollDiff))}</div>
+        </div>
+      </div>
+
+      <!-- Wochen-Balkendiagramm -->
+      <div class="card" style="margin-bottom:1.25rem">
+        <div class="card-header"><span class="card-title">Wochenverlauf</span></div>
+        <div style="display:flex;gap:.4rem;align-items:flex-end;height:110px;padding:.25rem 0 0">
+          ${days.map(day => {
+            const pct = day.mins ? Math.max(5, Math.round(day.mins / maxMins * 100)) : 0;
+            const isToday = day.dateStr === today();
+            return `
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:.25rem">
+              <div style="font-size:.68rem;color:var(--text-muted);font-weight:${day.mins?'600':'400'};white-space:nowrap">${day.mins ? formatDuration(day.mins) : ''}</div>
+              <div style="width:100%;flex:1;display:flex;align-items:flex-end">
+                <div style="width:100%;height:${pct}%;min-height:${pct?'4px':'0'};background:${isToday?'var(--navy)':day.mins?'var(--blue-light)':'var(--card-border)'};border-radius:4px 4px 0 0"></div>
+              </div>
+              <div style="font-size:.75rem;font-weight:${isToday?'700':'400'};color:${isToday?'var(--navy)':'var(--text-muted)'}">${day.name}</div>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>
+
+      <!-- Tagesdetails -->
+      <div class="card">
+        <div class="card-header"><span class="card-title">Details</span></div>
+        ${days.filter(d => d.entries.length).length === 0
+          ? '<p style="color:var(--text-muted);padding:.5rem 0">Noch keine Einträge diese Woche</p>'
+          : days.filter(d => d.entries.length).map(day => `
+          <div style="padding:.65rem 0;border-bottom:1px solid var(--card-border)">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.3rem">
+              <span style="font-weight:600;font-size:.875rem">${day.d.toLocaleDateString('de-DE',{weekday:'long',day:'2-digit',month:'2-digit'})}</span>
+              <span style="font-weight:700;color:var(--navy)">${formatDuration(day.mins)}</span>
+            </div>
+            ${day.entries.map(e => `
+              <div style="display:flex;justify-content:space-between;font-size:.78rem;color:var(--text-muted);padding:.1rem 0">
+                <span>${formatTime(e.start_zeit)} – ${e.end_zeit?formatTime(e.end_zeit):'laufend'}${e.projekt_label?' · '+e.projekt_label:''}</span>
+                <span>${formatDuration(e.gesamt_minuten)}</span>
+              </div>`).join('')}
+          </div>`).join('')}
+      </div>`;
+  },
+
+  /* ── Tab: Monat ── */
+  renderMonatTab() {
+    const monatsEintraege = this._allEntries
+      .filter(e => e.datum?.startsWith(this.userMonth))
+      .sort((a,b) => a.datum > b.datum ? 1 : -1);
+    const total = monatsEintraege.reduce((s, e) => s + (e.gesamt_minuten || 0), 0);
+    const arbeitstage = [...new Set(monatsEintraege.map(e => e.datum))].length;
+
+    const months = [...new Set(this._allEntries.map(e => e.datum?.slice(0,7)).filter(Boolean))].sort().reverse();
+    if (!months.includes(this.userMonth)) months.unshift(this.userMonth);
+    const monthLabel = m => new Date(m + '-01').toLocaleDateString('de-DE', { month: 'long', year: 'numeric' });
+
+    document.getElementById('zeit-user-tab').innerHTML = `
+      <!-- Monatsfilter -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:.5rem">
+        <div style="font-weight:700;font-size:1rem">${monthLabel(this.userMonth)}</div>
+        <select class="form-select" style="width:auto" onchange="ZeiterfassungModule.userMonth=this.value;ZeiterfassungModule.renderUserTab()">
+          ${months.map(m => `<option value="${m}" ${m===this.userMonth?'selected':''}>${monthLabel(m)}</option>`).join('')}
+        </select>
+      </div>
+
+      <!-- Stat-Karten -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:.75rem;margin-bottom:1.25rem">
+        <div class="card" style="text-align:center;padding:1rem .5rem">
+          <div style="font-size:.72rem;color:var(--text-muted);margin-bottom:.2rem">Gesamt</div>
+          <div style="font-size:1.4rem;font-weight:800;color:var(--navy)">${formatDuration(total)}</div>
+        </div>
+        <div class="card" style="text-align:center;padding:1rem .5rem">
+          <div style="font-size:.72rem;color:var(--text-muted);margin-bottom:.2rem">Arbeitstage</div>
+          <div style="font-size:1.4rem;font-weight:800;color:var(--navy)">${arbeitstage}</div>
+        </div>
+        <div class="card" style="text-align:center;padding:1rem .5rem">
+          <div style="font-size:.72rem;color:var(--text-muted);margin-bottom:.2rem">Ø pro Tag</div>
+          <div style="font-size:1.4rem;font-weight:800;color:var(--navy)">${arbeitstage ? formatDuration(Math.round(total/arbeitstage)) : '—'}</div>
+        </div>
+        <div class="card" style="text-align:center;padding:1rem .5rem">
+          <div style="font-size:.72rem;color:var(--text-muted);margin-bottom:.2rem">Einträge</div>
+          <div style="font-size:1.4rem;font-weight:800;color:var(--navy)">${monatsEintraege.length}</div>
+        </div>
+      </div>
+
+      <!-- Monatstabelle -->
+      <div class="card">
+        <div class="card-header"><span class="card-title">Alle Einträge</span></div>
+        ${monatsEintraege.length ? `
+        <div style="overflow-x:auto">
+          <table style="width:100%;font-size:.82rem;border-collapse:collapse">
+            <thead>
+              <tr style="background:var(--bg)">
+                <th style="padding:.5rem .6rem;text-align:left;font-weight:600">Datum</th>
+                <th style="padding:.5rem .6rem;text-align:left;font-weight:600">Beginn</th>
+                <th style="padding:.5rem .6rem;text-align:left;font-weight:600">Ende</th>
+                <th style="padding:.5rem .6rem;text-align:left;font-weight:600">Projekt / Bereich</th>
+                <th style="padding:.5rem .6rem;text-align:right;font-weight:600">Stunden</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${monatsEintraege.map(e => `
+                <tr style="border-top:1px solid var(--card-border)">
+                  <td style="padding:.5rem .6rem">${formatDate(e.datum)}</td>
+                  <td style="padding:.5rem .6rem">${formatTime(e.start_zeit)}</td>
+                  <td style="padding:.5rem .6rem">${e.end_zeit?formatTime(e.end_zeit):'—'}</td>
+                  <td style="padding:.5rem .6rem;color:var(--text-muted)">${e.projekt_label||'—'}</td>
+                  <td style="padding:.5rem .6rem;text-align:right;font-weight:600">${formatDuration(e.gesamt_minuten)}</td>
+                </tr>`).join('')}
+            </tbody>
+            <tfoot>
+              <tr style="border-top:2px solid var(--card-border);background:var(--bg)">
+                <td colspan="4" style="padding:.5rem .6rem;font-weight:700">Gesamt</td>
+                <td style="padding:.5rem .6rem;text-align:right;font-weight:800;color:var(--navy)">${formatDuration(total)}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>` : '<p style="color:var(--text-muted);padding:.5rem 0">Keine Einträge in diesem Monat</p>'}
+      </div>`;
+  },
+
+  /* ── Tab: Projekte ── */
+  renderProjekteTab() {
+    const projektMap = {};
+    this._allEntries.forEach(e => {
+      const key = e.projekt_label || '— Kein Projekt';
+      if (!projektMap[key]) projektMap[key] = { label: key, minuten: 0, eintraege: 0 };
+      projektMap[key].minuten += e.gesamt_minuten || 0;
+      projektMap[key].eintraege++;
+    });
+
+    const projekte = Object.values(projektMap).sort((a,b) => b.minuten - a.minuten);
+    const gesamtMinuten = projekte.reduce((s, p) => s + p.minuten, 0);
+    const maxMins = projekte[0]?.minuten || 1;
+
+    document.getElementById('zeit-user-tab').innerHTML = `
+      <!-- Gesamtübersicht -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:.75rem;margin-bottom:1.25rem">
+        <div class="card" style="text-align:center;padding:1rem .5rem">
+          <div style="font-size:.72rem;color:var(--text-muted);margin-bottom:.2rem">Gesamt (alle Zeit)</div>
+          <div style="font-size:1.4rem;font-weight:800;color:var(--navy)">${formatDuration(gesamtMinuten)}</div>
+        </div>
+        <div class="card" style="text-align:center;padding:1rem .5rem">
+          <div style="font-size:.72rem;color:var(--text-muted);margin-bottom:.2rem">Projekte / Bereiche</div>
+          <div style="font-size:1.4rem;font-weight:800;color:var(--navy)">${projekte.length}</div>
+        </div>
+        <div class="card" style="text-align:center;padding:1rem .5rem">
+          <div style="font-size:.72rem;color:var(--text-muted);margin-bottom:.2rem">Buchungen gesamt</div>
+          <div style="font-size:1.4rem;font-weight:800;color:var(--navy)">${this._allEntries.length}</div>
+        </div>
+      </div>
+
+      <!-- Stunden pro Projekt -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Stunden nach Projekt / Bereich</span>
+        </div>
+        ${projekte.length ? projekte.map(p => {
+          const pct = Math.round(p.minuten / maxMins * 100);
+          const anteil = gesamtMinuten ? Math.round(p.minuten / gesamtMinuten * 100) : 0;
+          return `
+          <div style="padding:.75rem 0;border-bottom:1px solid var(--card-border)">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.4rem">
+              <span style="font-weight:600;font-size:.875rem">${p.label}</span>
+              <span style="font-weight:700;color:var(--navy)">${formatDuration(p.minuten)} <span style="font-weight:400;color:var(--text-muted);font-size:.75rem">${anteil}%</span></span>
+            </div>
+            <div style="background:var(--card-border);border-radius:4px;height:7px;overflow:hidden;margin-bottom:.25rem">
+              <div style="width:${pct}%;height:100%;background:var(--navy);border-radius:4px"></div>
+            </div>
+            <div style="font-size:.75rem;color:var(--text-muted)">${p.eintraege} Buchung${p.eintraege!==1?'en':''}</div>
+          </div>`;
+        }).join('') : '<p style="color:var(--text-muted)">Noch keine Daten vorhanden</p>'}
+      </div>`;
   },
 
   renderActionBtns() {
@@ -316,7 +562,7 @@ const ZeiterfassungModule = {
     if (s === 'paused') return `
       <button class="zeit-big-btn zeit-btn-weiter-lg" id="mod-start-btn">▶ Weiter</button>
       <button class="zeit-big-btn zeit-btn-gehen-lg" id="mod-stop-btn">🚪 Gehen</button>`;
-    if (s === 'gone') return `<div style="opacity:.7;font-size:.9rem">Feierabend genossen! 👋</div>`;
+    if (s === 'gone') return `<div style="opacity:.7;font-size:.9rem">Feierabend! 👋</div>`;
     return '';
   },
 
@@ -340,23 +586,6 @@ const ZeiterfassungModule = {
         </div>
         <span class="zeit-log-time">${formatDuration(e.gesamt_minuten)}</span>
       </div>`).join('');
-  },
-
-  async renderWeekSummary() {
-    try {
-      const all = await DB.getAll('zeiterfassung', { user_id: Auth.userId() });
-      const now = new Date();
-      const weekStart = new Date(now); weekStart.setDate(now.getDate() - now.getDay() + 1); weekStart.setHours(0,0,0,0);
-      const week = all.filter(e => new Date(e.datum) >= weekStart);
-      const total = week.reduce((s, e) => s + (e.gesamt_minuten || 0), 0);
-      if (!week.length) return '<p style="color:var(--text-muted);padding:.5rem 0">Noch keine Stunden diese Woche</p>';
-      return `
-        <div class="detail-grid">
-          <div class="detail-field"><div class="detail-field-label">Gesamt Woche</div><div class="detail-field-value" style="color:var(--navy);font-weight:800">${formatDuration(total)}</div></div>
-          <div class="detail-field"><div class="detail-field-label">Arbeitstage</div><div class="detail-field-value">${[...new Set(week.map(e => e.datum))].length} Tage</div></div>
-          <div class="detail-field"><div class="detail-field-label">Ø pro Tag</div><div class="detail-field-value">${formatDuration(Math.round(total / Math.max(1, [...new Set(week.map(e => e.datum))].length)))}</div></div>
-        </div>`;
-    } catch { return '<p style="color:var(--text-muted)">Offline</p>'; }
   },
 
   /* ── Admin-Übersicht ── */
