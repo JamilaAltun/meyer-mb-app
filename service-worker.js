@@ -1,4 +1,4 @@
-const CACHE_NAME = 'meyer-metallbau-v5';
+const CACHE_NAME = 'meyer-metallbau-v6';
 
 const STATIC_ASSETS = [
   './',
