@@ -167,6 +167,9 @@ async function initApp() {
   /* Notifications prüfen */
   NotificationsModule.checkAndShow();
 
+  /* Automatisches Backup starten */
+  BackupModule.startAuto();
+
   /* Badge-Zähler */
   updateBadges();
 

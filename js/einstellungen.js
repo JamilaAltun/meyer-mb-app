@@ -5,7 +5,7 @@ const EinstellungenModule = {
     setContent(`
       <div class="module-header"><div class="module-title">Einstellungen</div></div>
       <div class="tabs">
-        ${[['firma','Firmendaten'],['logo','Logo'],['mitarbeiter','Mitarbeiter & Berechtigungen'],['nummern','Nummernkreise'],['zahlung','Zahlungsbedingungen'],['zeiterfassung','Zeiterfassung'],['demo','Demo-Daten']].map(([k,l]) =>
+        ${[['firma','Firmendaten'],['logo','Logo'],['mitarbeiter','Mitarbeiter & Berechtigungen'],['nummern','Nummernkreise'],['zahlung','Zahlungsbedingungen'],['zeiterfassung','Zeiterfassung'],['backup','Backups'],['demo','Demo-Daten']].map(([k,l]) =>
           `<div class="tab-btn ${this.activeTab===k?'active':''}" onclick="EinstellungenModule.activeTab='${k}';EinstellungenModule.renderTab()">${l}</div>`
         ).join('')}
       </div>
@@ -16,10 +16,10 @@ const EinstellungenModule = {
   renderTab() {
     const container = document.getElementById('einst-tab-content');
     document.querySelectorAll('.tab-btn').forEach(b => {
-      const tabs = ['firma','logo','mitarbeiter','nummern','zahlung','zeiterfassung'];
+      const tabs = ['firma','logo','mitarbeiter','nummern','zahlung','zeiterfassung','backup'];
       b.classList.toggle('active', tabs.some((t,i) => b.getAttribute('onclick')?.includes(`'${t}'`) && this.activeTab === t));
     });
-    const map = { firma: () => this.renderFirma(), logo: () => this.renderLogo(), mitarbeiter: () => this.renderMitarbeiter(), nummern: () => this.renderNummern(), zahlung: () => this.renderZahlung(), zeiterfassung: () => this.renderZeiterfassung(), demo: () => this.renderDemo() };
+    const map = { firma: () => this.renderFirma(), logo: () => this.renderLogo(), mitarbeiter: () => this.renderMitarbeiter(), nummern: () => this.renderNummern(), zahlung: () => this.renderZahlung(), zeiterfassung: () => this.renderZeiterfassung(), backup: () => BackupModule.renderTab(), demo: () => this.renderDemo() };
     map[this.activeTab]?.();
   },
 
@@ -76,7 +76,7 @@ const EinstellungenModule = {
         <div class="card-header"><span class="card-title">Firmenlogo</span></div>
         <p style="font-size:.85rem;color:var(--text-muted);margin-bottom:1rem">Das Logo erscheint in der Sidebar, auf dem Login-Bildschirm und in allen PDFs.</p>
         ${s.logo_url
-          ? `<div style="margin-bottom:1rem;padding:.75rem;background:var(--bg);border-radius:var(--radius);display:inline-block">
+          ? `<div style="margin-bottom:1rem;padding:.75rem;background:#ffffff;border:1px solid var(--card-border);border-radius:var(--radius);display:inline-block">
                <img src="${s.logo_url}" alt="Logo" style="max-height:80px;max-width:220px;object-fit:contain" />
              </div>`
           : '<p style="color:var(--text-muted);margin-bottom:1rem;font-size:.875rem">Noch kein Logo hochgeladen.</p>'}
