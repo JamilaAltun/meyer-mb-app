@@ -1,4 +1,4 @@
-const CACHE_NAME = 'meyer-metallbau-v2';
+const CACHE_NAME = 'meyer-metallbau-v4';
 
 const STATIC_ASSETS = [
   './',
@@ -53,15 +53,28 @@ self.addEventListener('fetch', event => {
 
   const url = new URL(request.url);
 
-  /* Supabase API-Calls: immer Network-First, bei Fehler Cache */
+  /* Supabase API-Calls: immer Network-First */
   if (url.hostname.includes('supabase')) {
+    event.respondWith(fetch(request).catch(() => caches.match(request)));
+    return;
+  }
+
+  /* HTML, JS, CSS: immer Network-First — Änderungen sofort sichtbar */
+  const isAppFile = url.pathname.match(/\.(html|js|css)$/) || url.pathname === '/' || url.pathname.endsWith('/');
+  if (isAppFile) {
     event.respondWith(
-      fetch(request).catch(() => caches.match(request))
+      fetch(request).then(response => {
+        if (response && response.status === 200) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(request, clone));
+        }
+        return response;
+      }).catch(() => caches.match(request))
     );
     return;
   }
 
-  /* Alle anderen: Cache-First */
+  /* Bilder und externe Libs: Cache-First (ändert sich selten) */
   event.respondWith(
     caches.match(request).then(cached => {
       if (cached) return cached;
