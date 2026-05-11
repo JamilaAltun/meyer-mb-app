@@ -178,10 +178,24 @@ async function syncPendingData() {
   if (!failed.length) showToast('Daten erfolgreich synchronisiert', 'success');
 }
 
-/* Einstellungen */
+/* Einstellungen — lokal + Supabase-Sync */
 const Settings = {
   get() { return LS.getOne('einstellungen') || {}; },
-  set(data) { LS.setOne('einstellungen', { ...Settings.get(), ...data }); },
+  set(data) {
+    const merged = { ...Settings.get(), ...data };
+    LS.setOne('einstellungen', merged);
+    /* In Supabase persistieren */
+    if (isOnline()) {
+      supabaseClient.from('einstellungen').upsert({ id: 'global', ...merged }).then(() => {});
+    }
+  },
+  async load() {
+    if (!isOnline()) return;
+    try {
+      const { data } = await supabaseClient.from('einstellungen').select('*').eq('id', 'global').single();
+      if (data) { const { id, ...rest } = data; LS.setOne('einstellungen', rest); }
+    } catch {}
+  },
 };
 
 /* Hilfsfunktionen */

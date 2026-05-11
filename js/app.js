@@ -111,6 +111,9 @@ async function initApp() {
   const u = Auth.currentUser;
   if (!u) return;
 
+  /* Einstellungen aus Supabase laden (überschreibt alten Cache) */
+  await Settings.load();
+
   /* Benutzeranzeige */
   updateUserDisplay();
 
