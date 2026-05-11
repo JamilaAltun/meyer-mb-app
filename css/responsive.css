@@ -12,6 +12,11 @@
 
 /* ── Mobil & Tablet (bis 768px) ── */
 @media (max-width: 768px) {
+  /* Dashboard Grids: 1 Spalte */
+  .dash-grid, .dash-chart-grid { grid-template-columns: 1fr; }
+
+  /* iOS: verhindert Auto-Zoom bei Eingabefeldern (< 16px) */
+  .form-input, .form-select, .form-textarea { font-size: 16px; }
   /* Sidebar als Drawer */
   .sidebar {
     transform: translateX(-100%);

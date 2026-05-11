@@ -17,9 +17,9 @@ const UrlaubModule = {
 
       <!-- Urlaubskonto -->
       <div class="kpi-grid" style="max-width:600px;margin-bottom:1.5rem">
-        <div class="kpi-card green"><div class="kpi-icon">🏖️</div><div class="kpi-value">${user?.urlaub_tage_gesamt||28}</div><div class="kpi-label">Gesamt Tage</div></div>
-        <div class="kpi-card orange"><div class="kpi-icon">✓</div><div class="kpi-value">${genommene}</div><div class="kpi-label">Genommen</div></div>
-        <div class="kpi-card ${rest < 5 ? 'red' : 'blue'}"><div class="kpi-icon">⏳</div><div class="kpi-value">${rest}</div><div class="kpi-label">Resturlaub</div></div>
+        <div class="kpi-card green"><div class="kpi-value">${user?.urlaub_tage_gesamt||28}</div><div class="kpi-label">Gesamt Tage</div></div>
+        <div class="kpi-card orange"><div class="kpi-value">${genommene}</div><div class="kpi-label">Genommen</div></div>
+        <div class="kpi-card ${rest < 5 ? 'red' : 'blue'}"><div class="kpi-value">${rest}</div><div class="kpi-label">Resturlaub</div></div>
       </div>
 
       <!-- Meine Anträge -->

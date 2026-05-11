@@ -26,7 +26,7 @@ const AufgabenModule = {
   },
 
   renderList(items, um, am) {
-    if (!items.length) return '<div class="table-empty"><div class="table-empty-icon">✅</div><div class="table-empty-text">Keine Aufgaben</div></div>';
+    if (!items.length) return '<div class="table-empty"><div class="table-empty-text">Keine Aufgaben</div></div>';
     return items.map(a => `
       <div class="card" style="margin-bottom:.75rem;border-left:4px solid ${a.prioritaet==='hoch'?'var(--red)':a.prioritaet==='normal'?'var(--orange)':'var(--blue)'}">
         <div style="display:flex;align-items:flex-start;gap:.75rem">
@@ -39,14 +39,14 @@ const AufgabenModule = {
             </div>
             ${a.beschreibung ? `<p style="font-size:.85rem;color:var(--text-muted);margin-bottom:.4rem">${a.beschreibung}</p>` : ''}
             <div style="display:flex;gap:.75rem;font-size:.75rem;color:var(--text-muted);flex-wrap:wrap">
-              ${a.faellig_am ? `<span>📅 Fällig: ${formatDate(a.faellig_am)}</span>` : ''}
-              ${(a.zugewiesen_an||[]).length ? `<span>👤 ${(a.zugewiesen_an||[]).map(id => um[id]?.name||id).join(', ')}</span>` : ''}
-              ${a.auftrag_id && am[a.auftrag_id] ? `<span>📋 ${am[a.auftrag_id].nummer}</span>` : ''}
+              ${a.faellig_am ? `<span>Fällig: ${formatDate(a.faellig_am)}</span>` : ''}
+              ${(a.zugewiesen_an||[]).length ? `<span>${(a.zugewiesen_an||[]).map(id => um[id]?.name||id).join(', ')}</span>` : ''}
+              ${a.auftrag_id && am[a.auftrag_id] ? `<span>${am[a.auftrag_id].nummer}</span>` : ''}
             </div>
           </div>
           ${Auth.isAdmin() ? `<div class="table-actions">
-            <button class="btn btn-ghost btn-sm btn-icon" onclick="AufgabenModule.openForm('${a.id}')">✏️</button>
-            <button class="btn btn-ghost btn-sm btn-icon" onclick="AufgabenModule.delete('${a.id}','${a.titel.replace(/'/g,'')}')">🗑️</button>
+            <button class="btn btn-ghost btn-sm btn-icon" onclick="AufgabenModule.openForm('${a.id}')">Bearb.</button>
+            <button class="btn btn-ghost btn-sm btn-icon" onclick="AufgabenModule.delete('${a.id}','${a.titel.replace(/'/g,'')}')">×</button>
           </div>` : ''}
         </div>
       </div>`).join('');
@@ -69,7 +69,7 @@ const AufgabenModule = {
 
   async toggleErledigt(id, erledigt) {
     await DB.update('aufgaben', id, { erledigt });
-    showToast(erledigt ? 'Aufgabe erledigt! ✅' : 'Aufgabe wieder geöffnet', erledigt ? 'success' : 'info');
+    showToast(erledigt ? 'Aufgabe erledigt!' : 'Aufgabe wieder geöffnet', erledigt ? 'success' : 'info');
     updateBadges();
   },
 

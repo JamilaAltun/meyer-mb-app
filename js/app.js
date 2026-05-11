@@ -67,10 +67,11 @@ const modules = {
   tickets:         () => TicketsModule.render(),
   einstellungen:   () => EinstellungenModule.render(),
   zeiterfassung:   () => ZeiterfassungModule.render(),
+  team:            () => TeamModule.render(),
 };
 
 async function navigateTo(moduleName) {
-  if (!Auth.can(moduleName) && moduleName !== 'dashboard' && moduleName !== 'zeiterfassung') {
+  if (!Auth.can(moduleName) && moduleName !== 'dashboard' && moduleName !== 'zeiterfassung' && moduleName !== 'team') {
     showToast('Kein Zugriff auf diesen Bereich', 'error');
     return;
   }
@@ -89,7 +90,7 @@ async function navigateTo(moduleName) {
     nachkalkulation: 'Nachkalkulation', rechnungen: 'Rechnungen',
     aufgaben: 'Aufgaben', kalender: 'Kalender',
     chat: 'Chat', urlaub: 'Urlaub',
-    tickets: 'Tickets', einstellungen: 'Einstellungen',
+    tickets: 'Tickets', einstellungen: 'Einstellungen', team: 'Team',
   };
   document.getElementById('topbar-title').textContent = labels[moduleName] || moduleName;
 

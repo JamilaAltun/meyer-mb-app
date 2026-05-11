@@ -31,7 +31,7 @@ const AuftraegeModule = {
       </div>
       <div class="table-wrapper">
         <div class="table-toolbar">
-          <div class="table-search">🔍 <input type="text" placeholder="Auftrag suchen..." value="${this.filterText}"
+          <div class="table-search"><input type="text" placeholder="Auftrag suchen..." value="${this.filterText}"
             oninput="AuftraegeModule.filterText=this.value.toLowerCase();AuftraegeModule.render()" /></div>
           <div class="filter-chips">
             ${['alle',...WORKFLOW].map(s => `<div class="chip${this.filterStatus===s?' active':''}" onclick="AuftraegeModule.filterStatus='${s}';AuftraegeModule.render()">${s==='alle'?'Alle':WORKFLOW_LABELS[s]}</div>`).join('')}
@@ -51,12 +51,12 @@ const AuftraegeModule = {
                 <td>${a.auftragswert ? formatCurrency(a.auftragswert) : '—'}</td>
                 <td onclick="event.stopPropagation()">
                   <div class="table-actions">
-                    <button class="btn btn-ghost btn-sm btn-icon" onclick="AuftraegeModule.openForm('${a.id}')" title="Bearbeiten">✏️</button>
-                    <button class="btn btn-ghost btn-sm btn-icon" onclick="AuftraegeModule.delete('${a.id}','${(a.nummer||'Auftrag').replace(/'/g,'')}')" title="Löschen">🗑️</button>
+                    <button class="btn btn-ghost btn-sm btn-icon" onclick="AuftraegeModule.openForm('${a.id}')" title="Bearbeiten">Bearb.</button>
+                    <button class="btn btn-ghost btn-sm btn-icon" onclick="AuftraegeModule.delete('${a.id}','${(a.nummer||'Auftrag').replace(/'/g,'')}')" title="Löschen">×</button>
                   </div>
                 </td>
               </tr>`;
-            }).join('') : `<tr><td colspan="7"><div class="table-empty"><div class="table-empty-icon">📋</div><div class="table-empty-text">Keine Aufträge gefunden</div></div></td></tr>`}
+            }).join('') : `<tr><td colspan="7"><div class="table-empty"><div class="table-empty-text">Keine Aufträge gefunden</div></div></td></tr>`}
           </tbody>
         </table>
       </div>
@@ -69,7 +69,7 @@ const AuftraegeModule = {
     const kunden = await DB.getAll('kunden');
     const kundeObj = kunden.find(k => k.id === a.kunde_id);
 
-    openModal(`📋 Auftrag ${a.nummer || ''}`, `
+    openModal(`Auftrag ${a.nummer || ''}`, `
       <!-- Workflow Bar -->
       <div class="workflow-bar" style="margin-bottom:1rem;overflow-x:auto">
         ${WORKFLOW.map((s,i) => {
@@ -90,9 +90,9 @@ const AuftraegeModule = {
       </div>
 
       <div style="display:flex;gap:.5rem;margin-top:1rem;flex-wrap:wrap">
-        <button class="btn btn-secondary btn-sm" onclick="closeModal();AuftraegeModule.openForm('${id}')">✏️ Bearbeiten</button>
-        <button class="btn btn-blue btn-sm" onclick="closeModal();navigateTo('nachkalkulation')">📊 Kalkulation</button>
-        <button class="btn btn-secondary btn-sm" onclick="closeModal();navigateTo('rechnungen')">🧾 Rechnung</button>
+        <button class="btn btn-secondary btn-sm" onclick="closeModal();AuftraegeModule.openForm('${id}')">Bearbeiten</button>
+        <button class="btn btn-blue btn-sm" onclick="closeModal();navigateTo('nachkalkulation')">Kalkulation</button>
+        <button class="btn btn-secondary btn-sm" onclick="closeModal();navigateTo('rechnungen')">Rechnung</button>
       </div>
     `, null, '', '800px');
   },

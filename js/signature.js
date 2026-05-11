@@ -121,7 +121,7 @@ const SignatureModule = {
           </div>
         ` : `
           <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:.75rem">Noch keine Unterschrift vorhanden.</p>
-          <button class="btn btn-primary btn-sm" onclick="SignatureModule.openPad('${auftragId}','${auftragNummer}')">✍ Jetzt unterschreiben</button>
+          <button class="btn btn-primary btn-sm" onclick="SignatureModule.openPad('${auftragId}','${auftragNummer}')">Jetzt unterschreiben</button>
         `}
       </div>`;
   },

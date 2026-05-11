@@ -114,8 +114,8 @@ const EinstellungenModule = {
 
   async renderMitarbeiter() {
     const users = await DB.getAll('users');
-    const perms = ['dashboard','kunden','anfragen','auftraege','nachkalkulation','rechnungen','aufgaben','kalender','zeiterfassung','chat','urlaub','tickets','einstellungen'];
-    const permLabels = { dashboard:'Dashboard', kunden:'Kunden', anfragen:'Angebote', auftraege:'Aufträge', nachkalkulation:'Nachkalk.', rechnungen:'Rechnungen', aufgaben:'Aufgaben', kalender:'Kalender', zeiterfassung:'Zeiterfassung', chat:'Chat', urlaub:'Urlaub', tickets:'Tickets', einstellungen:'Einstellungen' };
+    const perms = ['dashboard','kunden','anfragen','auftraege','nachkalkulation','rechnungen','aufgaben','kalender','zeiterfassung','chat','urlaub','tickets','team','einstellungen'];
+    const permLabels = { dashboard:'Dashboard', kunden:'Kunden', anfragen:'Angebote', auftraege:'Aufträge', nachkalkulation:'Nachkalk.', rechnungen:'Rechnungen', aufgaben:'Aufgaben', kalender:'Kalender', zeiterfassung:'Zeiterfassung', chat:'Chat', urlaub:'Urlaub', tickets:'Tickets', team:'Team', einstellungen:'Einstellungen' };
 
     document.getElementById('einst-tab-content').innerHTML = `
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;flex-wrap:wrap;gap:.75rem">
@@ -254,7 +254,7 @@ ${s.firma_name || 'Meyer Metallbau GmbH'}`
         pin_hash: simpleHash(pin), rolle: 'mitarbeiter',
         stundensatz: parseFloat(document.getElementById('nu-satz').value)||0,
         urlaub_tage_gesamt: parseInt(document.getElementById('nu-urlaub').value)||28,
-        berechtigungen: { dashboard: true, aufgaben: true, kalender: true, chat: true, tickets: true },
+        berechtigungen: { dashboard: true, aufgaben: true, kalender: true, chat: true, tickets: true, zeiterfassung: true, team: true },
         dark_mode: false
       });
       closeModal();

@@ -22,7 +22,7 @@ const ChatModule = {
           </div>
           <div class="chat-window" id="chat-window">
             <div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);font-size:.9rem">
-              👈 Kontakt auswählen
+              Kontakt auswählen
             </div>
           </div>
         </div>
@@ -69,7 +69,7 @@ const ChatModule = {
               <div class="chat-bubble">${m.text}</div>
               <div class="chat-time">${formatDateTime(m.erstellt_am)}</div>
             </div>
-          </div>`).join('') : '<div style="text-align:center;color:var(--text-muted);padding:2rem;font-size:.875rem">Noch keine Nachrichten. Schreib etwas! 👋</div>'}
+          </div>`).join('') : '<div style="text-align:center;color:var(--text-muted);padding:2rem;font-size:.875rem">Noch keine Nachrichten. Schreib etwas!</div>'}
       </div>
       <div class="chat-input-bar">
         <input class="chat-input" id="chat-input" placeholder="Nachricht schreiben..." />

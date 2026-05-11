@@ -15,9 +15,9 @@ const AnfragenModule = {
         </div>
       </div>
       <div class="tabs">
-        <div class="tab-btn ${this.activeTab==='angebote'?'active':''}" onclick="AnfragenModule.activeTab='angebote';AnfragenModule.renderTab()">📄 Angebote</div>
-        <div class="tab-btn ${this.activeTab==='anfragen'?'active':''}" onclick="AnfragenModule.activeTab='anfragen';AnfragenModule.renderTab()">📨 Anfragen</div>
-        <div class="tab-btn ${this.activeTab==='vorlagen'?'active':''}" onclick="AnfragenModule.activeTab='vorlagen';AnfragenModule.renderTab()">📚 Positionsvorlagen</div>
+        <div class="tab-btn ${this.activeTab==='angebote'?'active':''}" onclick="AnfragenModule.activeTab='angebote';AnfragenModule.renderTab()">Angebote</div>
+        <div class="tab-btn ${this.activeTab==='anfragen'?'active':''}" onclick="AnfragenModule.activeTab='anfragen';AnfragenModule.renderTab()">Anfragen</div>
+        <div class="tab-btn ${this.activeTab==='vorlagen'?'active':''}" onclick="AnfragenModule.activeTab='vorlagen';AnfragenModule.renderTab()">Positionsvorlagen</div>
       </div>
       <div id="anfragen-tab-content"></div>
     `);
@@ -59,13 +59,13 @@ const AnfragenModule = {
               <td>${getStatusBadge(a.status)}</td>
               <td onclick="event.stopPropagation()">
                 <div class="table-actions">
-                  <button class="btn btn-blue btn-sm" onclick="AnfragenModule.generatePdf('${a.id}')" title="PDF">📄</button>
+                  <button class="btn btn-blue btn-sm" onclick="AnfragenModule.generatePdf('${a.id}')" title="PDF">PDF</button>
                   <button class="btn btn-success btn-sm" onclick="AnfragenModule.zuAuftrag('${a.id}')" title="→ Auftrag">→</button>
-                  <button class="btn btn-ghost btn-sm btn-icon" onclick="AnfragenModule.openAngebotForm('${a.id}')">✏️</button>
-                  <button class="btn btn-ghost btn-sm btn-icon" onclick="AnfragenModule.deleteAngebot('${a.id}','${(a.nummer||'Angebot').replace(/'/g,'')}')">🗑️</button>
+                  <button class="btn btn-ghost btn-sm btn-icon" onclick="AnfragenModule.openAngebotForm('${a.id}')">Bearb.</button>
+                  <button class="btn btn-ghost btn-sm btn-icon" onclick="AnfragenModule.deleteAngebot('${a.id}','${(a.nummer||'Angebot').replace(/'/g,'')}')">×</button>
                 </div>
               </td>
-            </tr>`).join('') : '<tr><td colspan="7"><div class="table-empty"><div class="table-empty-icon">📄</div><div class="table-empty-text">Noch keine Angebote</div></div></td></tr>'}
+            </tr>`).join('') : '<tr><td colspan="7"><div class="table-empty"><div class="table-empty-text">Noch keine Angebote</div></div></td></tr>'}
           </tbody>
         </table>
       </div>`;
@@ -88,10 +88,10 @@ const AnfragenModule = {
               <td onclick="event.stopPropagation()">
                 <div class="table-actions">
                   <button class="btn btn-primary btn-sm" onclick="AnfragenModule.anfrageZuAngebot('${a.id}')">→ Angebot</button>
-                  <button class="btn btn-ghost btn-sm btn-icon" onclick="AnfragenModule.deleteAnfrage('${a.id}','Anfrage')">🗑️</button>
+                  <button class="btn btn-ghost btn-sm btn-icon" onclick="AnfragenModule.deleteAnfrage('${a.id}','Anfrage')">×</button>
                 </div>
               </td>
-            </tr>`).join('') : '<tr><td colspan="5"><div class="table-empty"><div class="table-empty-icon">📨</div><div class="table-empty-text">Noch keine Anfragen</div></div></td></tr>'}
+            </tr>`).join('') : '<tr><td colspan="5"><div class="table-empty"><div class="table-empty-text">Noch keine Anfragen</div></div></td></tr>'}
           </tbody>
         </table>
       </div>`;
@@ -111,11 +111,11 @@ const AnfragenModule = {
               <td>${v.standardpreis ? formatCurrency(v.standardpreis) : '—'}</td>
               <td>
                 <div class="table-actions">
-                  <button class="btn btn-ghost btn-sm btn-icon" onclick="AnfragenModule.openVorlageForm('${v.id}')">✏️</button>
-                  <button class="btn btn-ghost btn-sm btn-icon" onclick="AnfragenModule.deleteVorlage('${v.id}','${v.bezeichnung.replace(/'/g,'')}')">🗑️</button>
+                  <button class="btn btn-ghost btn-sm btn-icon" onclick="AnfragenModule.openVorlageForm('${v.id}')">Bearb.</button>
+                  <button class="btn btn-ghost btn-sm btn-icon" onclick="AnfragenModule.deleteVorlage('${v.id}','${v.bezeichnung.replace(/'/g,'')}')">×</button>
                 </div>
               </td>
-            </tr>`).join('') : '<tr><td colspan="5"><div class="table-empty"><div class="table-empty-icon">📚</div><div class="table-empty-text">Noch keine Vorlagen</div></div></td></tr>'}
+            </tr>`).join('') : '<tr><td colspan="5"><div class="table-empty"><div class="table-empty-text">Noch keine Vorlagen</div></div></td></tr>'}
           </tbody>
         </table>
       </div>`;
@@ -311,7 +311,7 @@ const AnfragenModule = {
     if (!a) return;
     const kunden = await DB.getAll('kunden');
     const k = kunden.find(k => k.id === a.kunde_id);
-    openModal(`📄 Angebot ${a.nummer}`, `
+    openModal(`Angebot ${a.nummer}`, `
       <div class="detail-grid">
         <div class="detail-field"><div class="detail-field-label">Nummer</div><div class="detail-field-value">${a.nummer}</div></div>
         <div class="detail-field"><div class="detail-field-label">Kunde</div><div class="detail-field-value">${k ? (k.firma||k.name) : '—'}</div></div>
@@ -332,7 +332,7 @@ const AnfragenModule = {
         <div class="positions-total-row total"><span>Gesamt:</span><span>${formatCurrency(a.gesamt_brutto)}</span></div>
       </div>
       <div style="display:flex;gap:.5rem;margin-top:1rem;flex-wrap:wrap">
-        <button class="btn btn-blue btn-sm" onclick="closeModal();AnfragenModule.generatePdf('${id}')">📄 PDF</button>
+        <button class="btn btn-blue btn-sm" onclick="closeModal();AnfragenModule.generatePdf('${id}')">PDF</button>
         <button class="btn btn-success btn-sm" onclick="closeModal();AnfragenModule.zuAuftrag('${id}')">→ Zu Auftrag</button>
         <select class="form-select" style="font-size:.8rem;padding:.35rem .6rem" onchange="AnfragenModule.updateStatus('${id}',this.value)">
           ${['entwurf','gesendet','angenommen','abgelehnt'].map(s => `<option value="${s}" ${a.status===s?'selected':''}>${s.charAt(0).toUpperCase()+s.slice(1)}</option>`).join('')}

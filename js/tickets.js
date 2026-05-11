@@ -19,10 +19,10 @@ const TicketsModule = {
             </div>
             <p style="font-size:.82rem;color:var(--text-muted);margin-bottom:.4rem">${t.beschreibung?.substring(0,100)||''}</p>
             <div class="ticket-meta">
-              <span>👤 ${um[t.erstellt_von]?.name||'—'}</span>
-              <span>📅 ${formatDate(t.erstellt_am)}</span>
+              <span>${um[t.erstellt_von]?.name||'—'}</span>
+              <span>${formatDate(t.erstellt_am)}</span>
             </div>
-          </div>`).join('') : '<div class="table-empty"><div class="table-empty-icon">🎫</div><div class="table-empty-text">Keine Tickets vorhanden</div></div>'}
+          </div>`).join('') : '<div class="table-empty"><div class="table-empty-text">Keine Tickets vorhanden</div></div>'}
       </div>`);
   },
 
@@ -31,7 +31,7 @@ const TicketsModule = {
     if (!t) return;
     const users = await DB.getAll('users');
     const um = {}; users.forEach(u => um[u.id] = u);
-    openModal(`🎫 ${t.titel}`, `
+    openModal(`${t.titel}`, `
       <div style="margin-bottom:1rem">${getStatusBadge(t.prioritaet)} ${getStatusBadge(t.status)}</div>
       <p style="color:var(--text-muted);font-size:.82rem;margin-bottom:.5rem">Von: ${um[t.erstellt_von]?.name||'—'} • ${formatDate(t.erstellt_am)}</p>
       <div class="detail-field" style="margin-bottom:1rem"><div class="detail-field-label">Beschreibung</div><div class="detail-field-value" style="white-space:pre-line">${t.beschreibung||'—'}</div></div>

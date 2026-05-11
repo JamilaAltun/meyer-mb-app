@@ -60,18 +60,18 @@ const KalenderModule = {
     try {
       const auftraege = await DB.getAll('auftraege');
       auftraege.forEach(a => {
-        if (a.fertigstellung) events.push({ date: a.fertigstellung, title: `📋 ${a.nummer||'Auftrag'}`, color: '#f59e0b', icon: '📋' });
+        if (a.fertigstellung) events.push({ date: a.fertigstellung, title: `${a.nummer||'Auftrag'}`, color: '#f59e0b', icon: '' });
         if (a.startdatum) events.push({ date: a.startdatum, title: `▶ ${a.nummer||'Auftrag'} Start`, color: '#2563eb', icon: '▶' });
       });
       const aufgaben = await DB.getAll('aufgaben');
       aufgaben.filter(a => a.faellig_am && !a.erledigt).forEach(a => {
-        events.push({ date: a.faellig_am, title: a.titel, color: a.prioritaet==='hoch'?'#ef4444':'#8b5cf6', icon: '✅' });
+        events.push({ date: a.faellig_am, title: a.titel, color: a.prioritaet==='hoch'?'#ef4444':'#8b5cf6', icon: '' });
       });
       const urlaub = await DB.getAll('urlaub');
       urlaub.filter(u => u.status === 'genehmigt').forEach(u => {
         const from = new Date(u.von_datum); const to = new Date(u.bis_datum);
         for (let d = new Date(from); d <= to; d.setDate(d.getDate()+1)) {
-          events.push({ date: d.toISOString().split('T')[0], title: `🏖️ Urlaub`, color: '#22c55e', icon: '🏖️' });
+          events.push({ date: d.toISOString().split('T')[0], title: 'Urlaub', color: '#22c55e', icon: '' });
         }
       });
     } catch (e) { /* offline */ }

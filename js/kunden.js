@@ -21,7 +21,7 @@ const KundenModule = {
       <div class="table-wrapper">
         <div class="table-toolbar">
           <div class="table-search">
-            🔍 <input type="text" placeholder="Name, Firma, Telefon suchen..." value="${this.filter}"
+            <input type="text" placeholder="Name, Firma, Telefon suchen..." value="${this.filter}"
               oninput="KundenModule.filter=this.value.toLowerCase();KundenModule.render()" />
           </div>
           <span style="color:var(--text-muted);font-size:.85rem">${filtered.length} Kunden</span>
@@ -38,11 +38,11 @@ const KundenModule = {
                 <td>${k.ort || '—'}</td>
                 <td onclick="event.stopPropagation()">
                   <div class="table-actions">
-                    <button class="btn btn-ghost btn-sm btn-icon" onclick="KundenModule.openForm('${k.id}')" title="Bearbeiten">✏️</button>
-                    <button class="btn btn-ghost btn-sm btn-icon" onclick="KundenModule.delete('${k.id}','${(k.firma||k.name).replace(/'/g,'')}')" title="Löschen">🗑️</button>
+                    <button class="btn btn-ghost btn-sm btn-icon" onclick="KundenModule.openForm('${k.id}')" title="Bearbeiten">Bearb.</button>
+                    <button class="btn btn-ghost btn-sm btn-icon" onclick="KundenModule.delete('${k.id}','${(k.firma||k.name).replace(/'/g,'')}')" title="Löschen">×</button>
                   </div>
                 </td>
-              </tr>`).join('') : `<tr><td colspan="6"><div class="table-empty"><div class="table-empty-icon">👥</div><div class="table-empty-text">Noch keine Kunden vorhanden</div></div></td></tr>`}
+              </tr>`).join('') : `<tr><td colspan="6"><div class="table-empty"><div class="table-empty-text">Noch keine Kunden vorhanden</div></div></td></tr>`}
           </tbody>
         </table>
       </div>
@@ -57,7 +57,7 @@ const KundenModule = {
       DB.getAll('auftraege', { kunde_id: id }),
       DB.getAll('rechnungen', { kunde_id: id }),
     ]);
-    openModal(`👥 ${k.firma || k.name}`, `
+    openModal(`${k.firma || k.name}`, `
       <div class="detail-grid">
         ${[['Name', k.name],['Firma', k.firma],['Ansprechpartner', k.ansprechpartner],['Adresse', k.adresse ? `${k.adresse}, ${k.plz} ${k.ort}` : '—'],['Telefon', k.telefon],['E-Mail', k.email]].map(([l,v]) => v ? `<div class="detail-field"><div class="detail-field-label">${l}</div><div class="detail-field-value">${v}</div></div>` : '').join('')}
       </div>
@@ -68,8 +68,8 @@ const KundenModule = {
       </div>
       ${k.notizen ? `<div class="detail-field"><div class="detail-field-label">Notizen</div><div class="detail-field-value" style="white-space:pre-line">${k.notizen}</div></div>` : ''}
       <div style="margin-top:1rem;display:flex;gap:.5rem">
-        <button class="btn btn-secondary btn-sm" onclick="closeModal();KundenModule.openForm('${id}')">✏️ Bearbeiten</button>
-        <button class="btn btn-blue btn-sm" onclick="closeModal();navigateTo('auftraege')">📋 Aufträge</button>
+        <button class="btn btn-secondary btn-sm" onclick="closeModal();KundenModule.openForm('${id}')">Bearbeiten</button>
+        <button class="btn btn-blue btn-sm" onclick="closeModal();navigateTo('auftraege')">Aufträge</button>
       </div>
     `);
   },

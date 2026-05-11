@@ -43,42 +43,36 @@ const DashboardModule = {
       <!-- KPI Kacheln -->
       <div class="kpi-grid">
         <div class="kpi-card" onclick="navigateTo('anfragen')">
-          <div class="kpi-icon">📨</div>
           <div class="kpi-value">${offeneAngebote.length}</div>
           <div class="kpi-label">Offene Angebote</div>
         </div>
         <div class="kpi-card orange" onclick="navigateTo('auftraege')">
-          <div class="kpi-icon">📋</div>
           <div class="kpi-value">${laufendeAuftraege.length}</div>
           <div class="kpi-label">Laufende Aufträge</div>
         </div>
         <div class="kpi-card red" onclick="navigateTo('rechnungen')">
-          <div class="kpi-icon">🧾</div>
           <div class="kpi-value">${offeneRechnungen.length}</div>
           <div class="kpi-label">Offene Rechnungen</div>
         </div>
         <div class="kpi-card ${ueberfaellig.length ? 'red' : 'green'}" onclick="navigateTo('rechnungen')">
-          <div class="kpi-icon">⚠️</div>
           <div class="kpi-value">${ueberfaellig.length}</div>
           <div class="kpi-label">Überfällige Rechnungen</div>
         </div>
         <div class="kpi-card green">
-          <div class="kpi-icon">💶</div>
           <div class="kpi-value" style="font-size:1.3rem">${formatCurrency(umsatzMonat)}</div>
           <div class="kpi-label">Umsatz diesen Monat</div>
         </div>
         <div class="kpi-card purple" onclick="navigateTo('aufgaben')">
-          <div class="kpi-icon">✅</div>
           <div class="kpi-value">${meinAufgaben.length}</div>
           <div class="kpi-label">Meine offenen Aufgaben</div>
         </div>
       </div>
 
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem">
+      <div class="dash-grid">
         <!-- Letzte Aufträge -->
         <div class="card">
           <div class="card-header">
-            <span class="card-title">📋 Aktuelle Aufträge</span>
+            <span class="card-title">Aktuelle Aufträge</span>
             <button class="btn btn-ghost btn-sm" onclick="navigateTo('auftraege')">Alle →</button>
           </div>
           ${laufendeAuftraege.length ? laufendeAuftraege.slice(0,5).map(a => `
@@ -94,7 +88,7 @@ const DashboardModule = {
         <!-- Aufgaben heute -->
         <div class="card">
           <div class="card-header">
-            <span class="card-title">✅ Meine Aufgaben</span>
+            <span class="card-title">Meine Aufgaben</span>
             <button class="btn btn-ghost btn-sm" onclick="navigateTo('aufgaben')">Alle →</button>
           </div>
           ${meinAufgaben.length ? meinAufgaben.slice(0,5).map(a => `
@@ -105,7 +99,7 @@ const DashboardModule = {
                 ${a.faellig_am ? `<div style="font-size:.72rem;color:var(--text-muted)">Fällig: ${formatDate(a.faellig_am)}</div>` : ''}
               </div>
               ${getStatusBadge(a.prioritaet)}
-            </div>`).join('') : '<p style="color:var(--text-muted);font-size:.875rem">Keine offenen Aufgaben 🎉</p>'}
+            </div>`).join('') : '<p style="color:var(--text-muted);font-size:.875rem">Keine offenen Aufgaben</p>'}
         </div>
       </div>
 
@@ -113,13 +107,13 @@ const DashboardModule = {
       ${this.renderNachfassen(angebote)}
 
       <!-- Diagramme -->
-      <div style="display:grid;grid-template-columns:2fr 1fr;gap:1rem">
+      <div class="dash-chart-grid">
         <div class="chart-card">
-          <div class="card-header"><span class="card-title">📈 Umsatz (letzte 6 Monate)</span></div>
+          <div class="card-header"><span class="card-title">Umsatz (letzte 6 Monate)</span></div>
           <canvas id="chart-umsatz"></canvas>
         </div>
         <div class="chart-card">
-          <div class="card-header"><span class="card-title">📊 Aufträge nach Status</span></div>
+          <div class="card-header"><span class="card-title">Aufträge nach Status</span></div>
           <canvas id="chart-status"></canvas>
         </div>
       </div>
@@ -137,7 +131,7 @@ const DashboardModule = {
     if (!faellig.length) return '';
     return `
       <div class="card" style="border-left:4px solid var(--orange);margin-bottom:1rem">
-        <div class="card-header"><span class="card-title">🔔 Angebote zum Nachfassen (${faellig.length})</span></div>
+        <div class="card-header"><span class="card-title">Angebote zum Nachfassen (${faellig.length})</span></div>
         ${faellig.map(a => `
           <div style="display:flex;align-items:center;justify-content:space-between;padding:.6rem 0;border-bottom:1px solid var(--card-border)">
             <div>

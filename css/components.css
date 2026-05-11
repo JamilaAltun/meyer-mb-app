@@ -523,6 +523,19 @@ tbody tr:hover td { background: var(--bg); }
 .perm-table tr:hover td { background: var(--bg); }
 .perm-checkbox { width: 16px; height: 16px; accent-color: var(--blue); cursor: pointer; }
 
+/* ── DASHBOARD GRIDS ── */
+.dash-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+.dash-chart-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 1rem;
+}
+
 /* ── STATISTIK-CHARTS ── */
 .chart-card {
   background: var(--card);

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'meyer-metallbau-v6';
+const CACHE_NAME = 'meyer-metallbau-v7';
 
 const STATIC_ASSETS = [
   './',
@@ -27,6 +27,7 @@ const STATIC_ASSETS = [
   './js/urlaub.js',
   './js/tickets.js',
   './js/einstellungen.js',
+  './js/team.js',
   './js/backup.js',
   './js/app.js',
   'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',

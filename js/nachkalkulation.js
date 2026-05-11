@@ -22,9 +22,9 @@ const NachkalkulationModule = {
               <td>${formatCurrency(lohnIst)}</td>
               <td>${kalk.fremd_ist ? formatCurrency(kalk.fremd_ist) : '—'}</td>
               <td style="${margeColor};font-weight:700">${marge !== null ? marge.toFixed(1)+'%' : '—'}</td>
-              <td><button class="btn btn-blue btn-sm" onclick="event.stopPropagation();NachkalkulationModule.openForm('${a.id}')">✏️ Erfassen</button></td>
+              <td><button class="btn btn-blue btn-sm" onclick="event.stopPropagation();NachkalkulationModule.openForm('${a.id}')">Erfassen</button></td>
             </tr>`;
-          })).then(rows => rows.join('')) : '<tr><td colspan="7"><div class="table-empty"><div class="table-empty-icon">📊</div><div class="table-empty-text">Noch keine Aufträge zur Kalkulation</div></div></td></tr>'}
+          })).then(rows => rows.join('')) : '<tr><td colspan="7"><div class="table-empty"><div class="table-empty-text">Noch keine Aufträge zur Kalkulation</div></div></td></tr>'}
           </tbody>
         </table>
       </div>`);
@@ -49,7 +49,7 @@ const NachkalkulationModule = {
     const diff = gesamtSoll - gesamtIst;
     const marge = a?.auftragswert ? (a.auftragswert - gesamtIst) / a.auftragswert * 100 : null;
 
-    openModal(`📊 Kalkulation: ${a?.nummer||''}`, `
+    openModal(`Kalkulation: ${a?.nummer||''}`, `
       <table class="kalk-table">
         <thead><tr><th>Kategorie</th><th>Soll</th><th>Ist</th><th>Differenz</th></tr></thead>
         <tbody>

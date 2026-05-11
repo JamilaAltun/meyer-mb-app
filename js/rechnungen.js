@@ -29,13 +29,13 @@ const RechnungenModule = {
               <td>${getStatusBadge(status)}</td>
               <td onclick="event.stopPropagation()">
                 <div class="table-actions">
-                  <button class="btn btn-blue btn-sm" onclick="RechnungenModule.generatePdf('${r.id}')" title="PDF">📄</button>
+                  <button class="btn btn-blue btn-sm" onclick="RechnungenModule.generatePdf('${r.id}')" title="PDF">PDF</button>
                   <button class="btn btn-success btn-sm" onclick="RechnungenModule.markBezahlt('${r.id}')" title="Bezahlt">✓</button>
-                  <button class="btn btn-ghost btn-sm btn-icon" onclick="RechnungenModule.delete('${r.id}','${(r.nummer||'Rechnung').replace(/'/g,'')}')">🗑️</button>
+                  <button class="btn btn-ghost btn-sm btn-icon" onclick="RechnungenModule.delete('${r.id}','${(r.nummer||'Rechnung').replace(/'/g,'')}')">×</button>
                 </div>
               </td>
             </tr>`;
-          }).join('') : '<tr><td colspan="8"><div class="table-empty"><div class="table-empty-icon">🧾</div><div class="table-empty-text">Noch keine Rechnungen</div></div></td></tr>'}
+          }).join('') : '<tr><td colspan="8"><div class="table-empty"><div class="table-empty-text">Noch keine Rechnungen</div></div></td></tr>'}
           </tbody>
         </table>
       </div>`);
@@ -46,7 +46,7 @@ const RechnungenModule = {
     if (!r) return;
     const kunden = await DB.getAll('kunden');
     const k = kunden.find(k => k.id === r.kunde_id);
-    openModal(`🧾 Rechnung ${r.nummer}`, `
+    openModal(`Rechnung ${r.nummer}`, `
       <div class="detail-grid">
         <div class="detail-field"><div class="detail-field-label">Nummer</div><div class="detail-field-value">${r.nummer}</div></div>
         <div class="detail-field"><div class="detail-field-label">Typ</div><div class="detail-field-value">${r.typ==='schluss'?'Schlussrechnung':'Abschlagsrechnung'}</div></div>
@@ -56,9 +56,9 @@ const RechnungenModule = {
         <div class="detail-field"><div class="detail-field-label">Gesamt</div><div class="detail-field-value" style="font-weight:800;color:var(--navy)">${formatCurrency(r.gesamt_brutto)}</div></div>
       </div>
       <div style="display:flex;gap:.5rem;margin-top:1rem;flex-wrap:wrap">
-        <button class="btn btn-blue btn-sm" onclick="closeModal();RechnungenModule.generatePdf('${id}')">📄 PDF</button>
+        <button class="btn btn-blue btn-sm" onclick="closeModal();RechnungenModule.generatePdf('${id}')">PDF</button>
         ${r.status !== 'bezahlt' ? `<button class="btn btn-success btn-sm" onclick="closeModal();RechnungenModule.markBezahlt('${id}')">✓ Als bezahlt markieren</button>` : ''}
-        <button class="btn btn-secondary btn-sm" onclick="closeModal();RechnungenModule.openForm('${id}')">✏️ Bearbeiten</button>
+        <button class="btn btn-secondary btn-sm" onclick="closeModal();RechnungenModule.openForm('${id}')">Bearbeiten</button>
       </div>
     `);
   },

@@ -30,6 +30,7 @@ const Auth = {
     if (!this.currentUser) return false;
     if (this.currentUser.rolle === 'admin') return true;
     if (permission === 'zeiterfassung') return true; // jeder Mitarbeiter hat Zugriff
+    if (permission === 'team') return true;           // jeder Mitarbeiter sieht das Team
     const perms = this.currentUser.berechtigungen || {};
     return !!perms[permission];
   },
@@ -245,7 +246,7 @@ function applyPermissions() {
 
 /* ── Demo-Nutzer anlegen (erster Start) ── */
 async function ensureDefaultUsers() {
-  const users = LS.get('users');
+  const users = await DB.getAll('users');
   if (users.length > 0) return;
 
   const defaults = [
@@ -253,11 +254,9 @@ async function ensureDefaultUsers() {
       pin_hash: simpleHash('1234'), telefon: '', adresse: '', email: 'admin@meyer-metallbau.de',
       berechtigungen: allPerms(), stundensatz: 0, urlaub_tage_gesamt: 30, dark_mode: false,
       erstellt_am: new Date().toISOString() },
-    { id: 'user-001', name: 'Max Mustermann', position: 'Monteur', rolle: 'mitarbeiter',
-      pin_hash: simpleHash('1234'), telefon: '', adresse: '', email: '',
-      berechtigungen: { dashboard: true, auftraege: true, aufgaben: true, kalender: true, zeiterfassung: true, tickets: true, chat: true },
-      stundensatz: 45, urlaub_tage_gesamt: 28, dark_mode: false, erstellt_am: new Date().toISOString() },
   ];
+
+  for (const u of defaults) await DB.insert('users', u);
   LS.set('users', defaults);
 
   /* Beispieldaten beim ersten Start automatisch laden */
@@ -277,7 +276,7 @@ async function ensureDefaultUsers() {
 
 function allPerms() {
   return { dashboard: true, kunden: true, anfragen: true, auftraege: true, nachkalkulation: true,
-    rechnungen: true, aufgaben: true, kalender: true, zeiterfassung: true, chat: true, urlaub: true, tickets: true, einstellungen: true };
+    rechnungen: true, aufgaben: true, kalender: true, zeiterfassung: true, chat: true, urlaub: true, tickets: true, einstellungen: true, team: true };
 }
 
 /* Einfacher Hash für PINs (nicht kryptografisch sicher, ausreichend für lokale App) */
