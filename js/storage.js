@@ -132,6 +132,26 @@ const DB = {
     return true;
   },
 
+  /* Flexible Abfrage mit Spaltenauswahl (für große Tabellen wie backups) */
+  async query(table, { select = '*', filter = {}, orderBy = 'erstellt_am', ascending = false, limit = null } = {}) {
+    if (isOnline()) {
+      let q = supabaseClient.from(table).select(select);
+      for (const [k, v] of Object.entries(filter)) q = q.eq(k, v);
+      q = q.order(orderBy, { ascending });
+      if (limit) q = q.limit(limit);
+      const { data, error } = await q;
+      if (error) throw error;
+      return data || [];
+    }
+    let data = LS.get(table);
+    for (const [k, v] of Object.entries(filter)) data = data.filter(r => r[k] == v);
+    data = data.sort((a, b) => ascending
+      ? new Date(a[orderBy]) - new Date(b[orderBy])
+      : new Date(b[orderBy]) - new Date(a[orderBy])
+    );
+    return limit ? data.slice(0, limit) : data;
+  },
+
   /* Suche */
   async search(tables, query) {
     const results = [];
