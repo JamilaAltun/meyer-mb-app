@@ -263,7 +263,7 @@ const ZeiterfassungModule = {
     try { this._allEntries = await DB.getAll('zeiterfassung', { user_id: Auth.userId() }); } catch { this._allEntries = []; }
 
     const tabs = Auth.isAdmin()
-      ? [['team','👥 Team'],['heute','Meine Zeit'],['woche','Diese Woche'],['monat','Monat'],['projekte','Projekte']]
+      ? [['team','Team'],['heute','Meine Zeit'],['woche','Diese Woche'],['monat','Monat'],['projekte','Projekte']]
       : [['heute','Heute'],['woche','Diese Woche'],['monat','Monat'],['projekte','Projekte']];
 
     setContent(`
@@ -401,20 +401,20 @@ const ZeiterfassungModule = {
           <div class="zeit-clock-date">${new Date().toLocaleDateString('de-DE', { weekday:'long', day:'2-digit', month:'long', year:'numeric' })}</div>
           <div class="zeit-clock-status">${statusLabel[this.state.status] || ''}</div>
           ${(this.state.status === 'working' || this.state.status === 'paused') && this.state.projekt_label
-            ? `<div style="font-size:.8rem;color:var(--text-muted);margin:.2rem 0">📋 ${this.state.projekt_label}</div>` : ''}
+            ? `<div style="font-size:.8rem;color:var(--text-muted);margin:.2rem 0">${this.state.projekt_label}</div>` : ''}
           <div class="zeit-clock-buttons">${this.renderActionBtns()}</div>
         </div>
 
         ${heutes.length ? `
         <div class="card">
           <div class="card-header">
-            <span class="card-title">📋 Heutiges Protokoll</span>
+            <span class="card-title">Heutiges Protokoll</span>
             ${totalHeute ? `<span style="font-weight:700;color:var(--navy)">${formatDuration(totalHeute)}</span>` : ''}
           </div>
           ${this.renderTodayLog(heutes)}
         </div>` : this.state.log.length ? `
         <div class="card">
-          <div class="card-header"><span class="card-title">📋 Heutiger Tag</span></div>
+          <div class="card-header"><span class="card-title">Heutiger Tag</span></div>
           ${this.renderCurrentLog()}
         </div>` : ''}
       </div>`;
@@ -651,17 +651,17 @@ const ZeiterfassungModule = {
     if (s === 'idle') return `<button class="zeit-big-btn zeit-btn-start-lg" id="mod-start-btn">▶ Start</button>`;
     if (s === 'working') return `
       <button class="zeit-big-btn zeit-btn-pause-lg" id="mod-pause-btn">⏸ Pause</button>
-      <button class="zeit-big-btn zeit-btn-gehen-lg" id="mod-stop-btn">🚪 Gehen</button>`;
+      <button class="zeit-big-btn zeit-btn-gehen-lg" id="mod-stop-btn">Gehen</button>`;
     if (s === 'paused') return `
       <button class="zeit-big-btn zeit-btn-weiter-lg" id="mod-start-btn">▶ Weiter</button>
-      <button class="zeit-big-btn zeit-btn-gehen-lg" id="mod-stop-btn">🚪 Gehen</button>`;
-    if (s === 'gone') return `<div style="opacity:.7;font-size:.9rem">Feierabend! 👋</div>`;
+      <button class="zeit-big-btn zeit-btn-gehen-lg" id="mod-stop-btn">Gehen</button>`;
+    if (s === 'gone') return `<div style="opacity:.7;font-size:.9rem">Feierabend</div>`;
     return '';
   },
 
   renderCurrentLog() {
     if (!this.state.log.length) return '<p style="color:var(--text-muted);padding:1rem">Noch keine Einträge</p>';
-    const icons = { start: '▶ Start', pause: '⏸ Pause', weiter: '▶ Weiter', gehen: '🚪 Gehen' };
+    const icons = { start: '▶ Start', pause: '⏸ Pause', weiter: '▶ Weiter', gehen: 'Gehen' };
     return this.state.log.map(l => `
       <div class="zeit-log-item">
         <span class="zeit-log-type">${icons[l.type] || l.type}</span>
@@ -675,7 +675,7 @@ const ZeiterfassungModule = {
       <div class="zeit-log-item">
         <div>
           <span class="zeit-log-type">⏱ ${formatTime(e.start_zeit)} – ${e.end_zeit ? formatTime(e.end_zeit) : 'laufend'}</span>
-          ${e.projekt_label ? `<div style="font-size:.75rem;color:var(--text-muted);margin-top:.15rem">📋 ${e.projekt_label}</div>` : ''}
+          ${e.projekt_label ? `<div style="font-size:.75rem;color:var(--text-muted);margin-top:.15rem">${e.projekt_label}</div>` : ''}
         </div>
         <span class="zeit-log-time">${formatDuration(e.gesamt_minuten)}</span>
       </div>`).join('');
