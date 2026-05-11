@@ -311,7 +311,7 @@ const ZeiterfassungModule = {
     const todayStr = today();
     const todayEntries = entries.filter(e => e.datum === todayStr);
 
-    const rows = users.map(u => {
+    const cards = users.map(u => {
       const entry = todayEntries.find(e => e.user_id === u.id);
       const active = entry && !entry.end_zeit;
       const done   = entry && !!entry.end_zeit;
@@ -320,11 +320,11 @@ const ZeiterfassungModule = {
       if (active) {
         statusColor = 'var(--green)';
         statusText  = 'Eingestempelt';
-        zeitInfo    = `Seit ${formatTime(entry.start_zeit)}${entry.projekt_label ? ' · ' + entry.projekt_label : ''}`;
+        zeitInfo    = `Seit ${formatTime(entry.start_zeit)}${entry.projekt_label ? '<br>' + entry.projekt_label : ''}`;
       } else if (done) {
         statusColor = 'var(--navy)';
         statusText  = 'Feierabend';
-        zeitInfo    = `${formatTime(entry.start_zeit)} – ${formatTime(entry.end_zeit)} · ${formatDuration(entry.gesamt_minuten)}`;
+        zeitInfo    = `${formatTime(entry.start_zeit)} – ${formatTime(entry.end_zeit)}<br><strong>${formatDuration(entry.gesamt_minuten)}</strong>`;
       } else {
         statusColor = 'var(--red)';
         statusText  = 'Nicht eingestempelt';
@@ -332,21 +332,21 @@ const ZeiterfassungModule = {
       }
 
       return `
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:.85rem 1rem;border-radius:var(--radius);border:2px solid ${statusColor};background:var(--card);margin-bottom:.6rem;flex-wrap:wrap;gap:.5rem">
-          <div style="display:flex;align-items:center;gap:.75rem">
-            <div style="width:42px;height:42px;border-radius:50%;background:${statusColor};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.1rem;flex-shrink:0">${u.name.charAt(0).toUpperCase()}</div>
-            <div>
-              <div style="font-weight:700;font-size:.95rem">${u.name}</div>
-              <div style="font-size:.78rem;color:var(--text-muted)">${u.position || '—'}</div>
-            </div>
+        <div style="background:var(--card);border-radius:14px;border:2px solid ${statusColor};padding:1.25rem 1rem;display:flex;flex-direction:column;align-items:center;gap:.6rem;text-align:center;box-shadow:var(--shadow)">
+          <!-- Avatar -->
+          <div style="width:56px;height:56px;border-radius:50%;background:${statusColor};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.4rem">${u.name.charAt(0).toUpperCase()}</div>
+          <!-- Name & Position -->
+          <div>
+            <div style="font-weight:700;font-size:.95rem">${u.name}</div>
+            <div style="font-size:.75rem;color:var(--text-muted);margin-top:.1rem">${u.position || '—'}</div>
           </div>
-          <div style="text-align:right">
-            <div style="display:inline-flex;align-items:center;gap:.4rem;font-weight:700;font-size:.85rem;color:${statusColor}">
-              <span style="width:9px;height:9px;border-radius:50%;background:${statusColor};display:inline-block${active ? ';animation:pulse 1.5s infinite' : ''}"></span>
-              ${statusText}
-            </div>
-            <div style="font-size:.78rem;color:var(--text-muted);margin-top:.1rem">${zeitInfo}</div>
+          <!-- Status-Badge -->
+          <div style="display:inline-flex;align-items:center;gap:.35rem;background:${statusColor}22;color:${statusColor};font-weight:700;font-size:.78rem;padding:.25rem .65rem;border-radius:99px">
+            <span style="width:7px;height:7px;border-radius:50%;background:${statusColor};display:inline-block${active ? ';animation:pulse 1.5s infinite' : ''}"></span>
+            ${statusText}
           </div>
+          <!-- Zeit-Info -->
+          <div style="font-size:.78rem;color:var(--text-muted);line-height:1.5">${zeitInfo}</div>
         </div>`;
     }).join('');
 
@@ -371,10 +371,10 @@ const ZeiterfassungModule = {
         </div>
       </div>
 
-      <!-- Mitarbeiter-Liste -->
-      <div>
-        <div style="font-size:.78rem;color:var(--text-muted);margin-bottom:.6rem">${new Date().toLocaleDateString('de-DE',{weekday:'long',day:'2-digit',month:'long',year:'numeric'})} · Automatische Aktualisierung alle 60 Sek.</div>
-        ${rows || '<p style="color:var(--text-muted)">Keine Mitarbeiter vorhanden</p>'}
+      <!-- Mitarbeiter-Karten -->
+      <div style="font-size:.78rem;color:var(--text-muted);margin-bottom:.75rem">${new Date().toLocaleDateString('de-DE',{weekday:'long',day:'2-digit',month:'long',year:'numeric'})} · Aktualisierung alle 60 Sek.</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:1rem">
+        ${cards || '<p style="color:var(--text-muted)">Keine Mitarbeiter vorhanden</p>'}
       </div>`;
 
     /* Alle 60 Sekunden automatisch aktualisieren */
