@@ -1,16 +1,46 @@
 /* ═══════════════════════════════════════════════════════
-   BACKUP — Automatische Datensicherung in Supabase
-   Jede Minute · Max 100 Backups · Geräteübergreifend
+   BACKUP — Automatische Datensicherung
+   Speichert in der bestehenden einstellungen-Tabelle.
+   Kein neues Schema nötig — funktioniert sofort.
+   Jede Minute · Max 100 · Geräteübergreifend
 ═══════════════════════════════════════════════════════ */
 
 const BackupModule = {
   MAX: 100,
   INTERVAL: 60000,
+  INDEX_ID: 'bk_index',
+  PREFIX: 'bk_',
   TABLES: [
     'users','kunden','auftraege','angebote','rechnungen',
-    'aufgaben','kalender_events','chat_nachrichten',
-    'urlaub','tickets','zeiterfassung'
+    'aufgaben','chat_nachrichten','urlaub','tickets','zeiterfassung'
   ],
+
+  /* ── Backup-Index (Metadaten-Liste) lesen ── */
+  async _getIndex() {
+    try {
+      if (isOnline()) {
+        const { data } = await getSupabase()
+          .from('einstellungen')
+          .select('logo_url')
+          .eq('id', this.INDEX_ID)
+          .maybeSingle();
+        if (data?.logo_url) return JSON.parse(data.logo_url);
+      }
+    } catch {}
+    try { return JSON.parse(localStorage.getItem('mmg_bk_index') || '[]'); }
+    catch { return []; }
+  },
+
+  /* ── Backup-Index speichern ── */
+  async _setIndex(list) {
+    const json = JSON.stringify(list);
+    try {
+      if (isOnline()) {
+        await getSupabase().from('einstellungen').upsert({ id: this.INDEX_ID, logo_url: json });
+      }
+    } catch {}
+    localStorage.setItem('mmg_bk_index', json);
+  },
 
   /* ── Backup erstellen ── */
   async create(label) {
@@ -18,84 +48,91 @@ const BackupModule = {
     for (const t of this.TABLES) {
       try { data[t] = await DB.getAll(t); } catch { data[t] = LS.get(t) || []; }
     }
-    data['_einstellungen'] = Settings.get();
+    /* Einstellungen ohne Logo (das wäre zu groß) */
+    const s = { ...Settings.get() };
+    delete s.logo_url;
+    data['_einstellungen'] = s;
 
+    const id = this.PREFIX + generateId();
+    const ts = new Date().toISOString();
+    const lbl = label || 'Auto';
+
+    /* Backup-Daten speichern */
     try {
-      const record = await DB.insert('backups', { label: label || 'Auto', data });
-      await this._trim();
-      return record;
-    } catch (e) {
-      /* Offline-Fallback: lokal speichern */
-      this._saveLocal({ id: generateId(), erstellt_am: new Date().toISOString(), label: label || 'Auto', data });
+      if (isOnline()) {
+        await getSupabase().from('einstellungen').upsert({
+          id,
+          firma_name: lbl,
+          skonto_text: ts,
+          logo_url: JSON.stringify(data),
+        });
+      } else {
+        localStorage.setItem('mmg_' + id, JSON.stringify({ id, ts, label: lbl, data }));
+      }
+    } catch { return; }
+
+    /* Index aktualisieren */
+    const index = await this._getIndex();
+    index.unshift({ id, ts, label: lbl });
+    while (index.length > this.MAX) {
+      const old = index.pop();
+      try {
+        if (isOnline()) await getSupabase().from('einstellungen').delete().eq('id', old.id);
+        localStorage.removeItem('mmg_' + old.id);
+      } catch {}
     }
+    await this._setIndex(index);
   },
 
-  /* ── Alle Backups laden (nur Metadaten für die Liste) ── */
+  /* ── Alle Backups laden (nur Metadaten) ── */
   async getAll() {
-    try {
-      const online = await DB.query('backups', { select: 'id, erstellt_am, label', orderBy: 'erstellt_am', ascending: false });
-      if (online.length) return online;
-    } catch {}
-    return this._getLocal().map(({ id, erstellt_am, label }) => ({ id, erstellt_am, label }));
+    return this._getIndex();
   },
 
   /* ── Backup wiederherstellen ── */
   async restore(id) {
-    let backup = null;
+    let data = null;
     try {
-      backup = await DB.getById('backups', id);
+      if (isOnline()) {
+        const { data: row } = await getSupabase()
+          .from('einstellungen')
+          .select('logo_url')
+          .eq('id', id)
+          .maybeSingle();
+        if (row?.logo_url) data = JSON.parse(row.logo_url);
+      }
     } catch {}
-    if (!backup) {
-      backup = this._getLocal().find(b => b.id === id);
+    if (!data) {
+      try {
+        const local = localStorage.getItem('mmg_' + id);
+        if (local) data = JSON.parse(local).data;
+      } catch {}
     }
-    if (!backup?.data) return false;
+    if (!data) return false;
 
-    const { data } = backup;
     for (const t of this.TABLES) {
       if (Array.isArray(data[t])) LS.set(t, data[t]);
     }
-    if (data['_einstellungen']) LS.setOne('einstellungen', data['_einstellungen']);
+    if (data['_einstellungen']) {
+      const current = Settings.get();
+      LS.setOne('einstellungen', { ...data['_einstellungen'], logo_url: current.logo_url });
+    }
     return true;
   },
 
   /* ── Backup löschen ── */
   async delete(id) {
-    try { await DB.delete('backups', id); } catch {}
-    this._saveLocal(this._getLocal().filter(b => b.id !== id));
-  },
-
-  /* ── Älteste Backups löschen wenn > MAX ── */
-  async _trim() {
     try {
-      const all = await DB.query('backups', { select: 'id, erstellt_am', orderBy: 'erstellt_am', ascending: false });
-      if (all.length > this.MAX) {
-        for (const old of all.slice(this.MAX)) {
-          await DB.delete('backups', old.id);
-        }
-      }
+      if (isOnline()) await getSupabase().from('einstellungen').delete().eq('id', id);
+      localStorage.removeItem('mmg_' + id);
     } catch {}
-  },
-
-  /* ── Lokaler Fallback (Offline) ── */
-  _getLocal() {
-    try { return JSON.parse(localStorage.getItem('mmg_backups_local') || '[]'); }
-    catch { return []; }
-  },
-  _saveLocal(entry) {
-    const isArray = Array.isArray(entry);
-    if (isArray) {
-      try { localStorage.setItem('mmg_backups_local', JSON.stringify(entry)); } catch {}
-      return;
-    }
-    const list = this._getLocal();
-    list.unshift(entry);
-    while (list.length > this.MAX) list.pop();
-    try { localStorage.setItem('mmg_backups_local', JSON.stringify(list)); } catch {}
+    const index = (await this._getIndex()).filter(b => b.id !== id);
+    await this._setIndex(index);
   },
 
   /* ── Auto-Backup starten ── */
   startAuto() {
-    setTimeout(() => this.create(), 5000);
+    setTimeout(() => this.create(), 8000);
     setInterval(() => this.create(), this.INTERVAL);
   },
 
@@ -106,7 +143,7 @@ const BackupModule = {
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;flex-wrap:wrap;gap:.5rem">
           <div>
             <div style="font-weight:700;font-size:1rem">Datensicherungen</div>
-            <div style="font-size:.82rem;color:var(--text-muted)">Automatisch jede Minute · in Supabase gespeichert · auf allen Geräten verfügbar</div>
+            <div style="font-size:.82rem;color:var(--text-muted)">Automatisch jede Minute · Supabase · auf allen Geräten verfügbar</div>
           </div>
           <button class="btn btn-primary btn-sm" onclick="BackupModule.manualBackup()">Jetzt sichern</button>
         </div>
@@ -139,10 +176,10 @@ const BackupModule = {
             ${b.label === 'Auto' ? 'Automatisch' : b.label}
             ${i === 0 ? '<span style="font-size:.7rem;background:var(--green);color:#fff;padding:.1rem .45rem;border-radius:4px;margin-left:.4rem">Neueste</span>' : ''}
           </div>
-          <div style="font-size:.78rem;color:var(--text-muted)">${fmt(b.erstellt_am)}</div>
+          <div style="font-size:.78rem;color:var(--text-muted)">${fmt(b.ts)}</div>
         </div>
         <div style="display:flex;gap:.4rem">
-          <button class="btn btn-secondary btn-sm" onclick="BackupModule.confirmRestore('${b.id}','${fmt(b.erstellt_am)}')">Wiederherstellen</button>
+          <button class="btn btn-secondary btn-sm" onclick="BackupModule.confirmRestore('${b.id}','${fmt(b.ts)}')">Wiederherstellen</button>
           <button class="btn btn-danger btn-sm" onclick="BackupModule.confirmDelete('${b.id}')">
             <i class="fa-solid fa-trash"></i>
           </button>
@@ -161,7 +198,7 @@ const BackupModule = {
     openModal('Sicherung wiederherstellen',
       `<p>Sicherung vom <strong>${label}</strong> wiederherstellen?</p>
        <p style="margin-top:.75rem;color:var(--orange);font-size:.875rem">
-         Die lokalen Daten werden durch diese Sicherung ersetzt. Die App wird danach neu geladen.
+         Die Daten werden durch diese Sicherung ersetzt. Die App wird danach neu geladen.
        </p>`,
       async () => {
         const ok = await this.restore(id);

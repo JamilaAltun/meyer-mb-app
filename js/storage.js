@@ -6,6 +6,7 @@
 
 let supabaseClient = null;
 const isOnline = () => !APP_CONFIG.offlineMode && navigator.onLine && supabaseClient;
+const getSupabase = () => supabaseClient;
 
 /* Supabase initialisieren */
 function initStorage() {
@@ -132,11 +133,12 @@ const DB = {
     return true;
   },
 
-  /* Flexible Abfrage mit Spaltenauswahl (für große Tabellen wie backups) */
-  async query(table, { select = '*', filter = {}, orderBy = 'erstellt_am', ascending = false, limit = null } = {}) {
+  /* Flexible Abfrage mit Spaltenauswahl und LIKE-Filter */
+  async query(table, { select = '*', filter = {}, like = {}, orderBy = 'erstellt_am', ascending = false, limit = null } = {}) {
     if (isOnline()) {
       let q = supabaseClient.from(table).select(select);
       for (const [k, v] of Object.entries(filter)) q = q.eq(k, v);
+      for (const [k, v] of Object.entries(like)) q = q.like(k, v);
       q = q.order(orderBy, { ascending });
       if (limit) q = q.limit(limit);
       const { data, error } = await q;
@@ -145,6 +147,10 @@ const DB = {
     }
     let data = LS.get(table);
     for (const [k, v] of Object.entries(filter)) data = data.filter(r => r[k] == v);
+    for (const [k, v] of Object.entries(like)) {
+      const prefix = v.replace(/%/g, '');
+      data = data.filter(r => String(r[k] || '').startsWith(prefix));
+    }
     data = data.sort((a, b) => ascending
       ? new Date(a[orderBy]) - new Date(b[orderBy])
       : new Date(b[orderBy]) - new Date(a[orderBy])
