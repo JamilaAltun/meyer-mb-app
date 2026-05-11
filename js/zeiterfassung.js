@@ -251,22 +251,27 @@ const ZeiterfassungModule = {
   },
 
   /* ── Tabs ── */
-  userTab: 'heute',
+  userTab: null,
   userMonth: new Date().toISOString().slice(0, 7),
   _allEntries: [],
+  _teamRefreshInterval: null,
 
   /* ── Modul-Seite rendern ── */
   async render() {
     this.loadState();
+    if (this.userTab === null) this.userTab = Auth.isAdmin() ? 'team' : 'heute';
     try { this._allEntries = await DB.getAll('zeiterfassung', { user_id: Auth.userId() }); } catch { this._allEntries = []; }
+
+    const tabs = Auth.isAdmin()
+      ? [['team','👥 Team'],['heute','Meine Zeit'],['woche','Diese Woche'],['monat','Monat'],['projekte','Projekte']]
+      : [['heute','Heute'],['woche','Diese Woche'],['monat','Monat'],['projekte','Projekte']];
 
     setContent(`
       <div class="module-header">
         <div class="module-title">Zeiterfassung</div>
-        ${Auth.isAdmin() ? `<button class="btn btn-secondary btn-sm" onclick="ZeiterfassungModule.renderAdmin()">Team-Übersicht</button>` : ''}
       </div>
       <div class="tabs">
-        ${[['heute','Heute'],['woche','Diese Woche'],['monat','Monat'],['projekte','Projekte']].map(([k,l]) =>
+        ${tabs.map(([k,l]) =>
           `<div class="tab-btn ${this.userTab===k?'active':''}" onclick="ZeiterfassungModule.userTab='${k}';ZeiterfassungModule.renderUserTab()">${l}</div>`
         ).join('')}
       </div>
@@ -277,17 +282,105 @@ const ZeiterfassungModule = {
   },
 
   renderUserTab() {
+    clearInterval(this._teamRefreshInterval);
+    const allTabs = ['team','heute','woche','monat','projekte'];
     document.querySelectorAll('.tab-btn').forEach(b => {
-      b.classList.toggle('active', ['heute','woche','monat','projekte'].some(t =>
+      b.classList.toggle('active', allTabs.some(t =>
         b.getAttribute('onclick')?.includes(`'${t}'`) && this.userTab === t));
     });
     const map = {
+      team:     () => this.renderTeamTab(),
       heute:    () => this.renderHeuteTab(),
       woche:    () => this.renderWocheTab(),
       monat:    () => this.renderMonatTab(),
       projekte: () => this.renderProjekteTab(),
     };
     map[this.userTab]?.();
+  },
+
+  /* ── Tab: Team (Admin) ── */
+  async renderTeamTab() {
+    let users = [], entries = [];
+    try {
+      [users, entries] = await Promise.all([
+        DB.getAll('users'),
+        DB.getAll('zeiterfassung'),
+      ]);
+    } catch {}
+
+    const todayStr = today();
+    const todayEntries = entries.filter(e => e.datum === todayStr);
+
+    const rows = users.map(u => {
+      const entry = todayEntries.find(e => e.user_id === u.id);
+      const active = entry && !entry.end_zeit;
+      const done   = entry && !!entry.end_zeit;
+
+      let statusColor, statusText, zeitInfo;
+      if (active) {
+        statusColor = 'var(--green)';
+        statusText  = 'Eingestempelt';
+        zeitInfo    = `Seit ${formatTime(entry.start_zeit)}${entry.projekt_label ? ' · ' + entry.projekt_label : ''}`;
+      } else if (done) {
+        statusColor = 'var(--navy)';
+        statusText  = 'Feierabend';
+        zeitInfo    = `${formatTime(entry.start_zeit)} – ${formatTime(entry.end_zeit)} · ${formatDuration(entry.gesamt_minuten)}`;
+      } else {
+        statusColor = 'var(--red)';
+        statusText  = 'Nicht eingestempelt';
+        zeitInfo    = '—';
+      }
+
+      return `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:.85rem 1rem;border-radius:var(--radius);border:2px solid ${statusColor};background:var(--card);margin-bottom:.6rem;flex-wrap:wrap;gap:.5rem">
+          <div style="display:flex;align-items:center;gap:.75rem">
+            <div style="width:42px;height:42px;border-radius:50%;background:${statusColor};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.1rem;flex-shrink:0">${u.name.charAt(0).toUpperCase()}</div>
+            <div>
+              <div style="font-weight:700;font-size:.95rem">${u.name}</div>
+              <div style="font-size:.78rem;color:var(--text-muted)">${u.position || '—'}</div>
+            </div>
+          </div>
+          <div style="text-align:right">
+            <div style="display:inline-flex;align-items:center;gap:.4rem;font-weight:700;font-size:.85rem;color:${statusColor}">
+              <span style="width:9px;height:9px;border-radius:50%;background:${statusColor};display:inline-block${active ? ';animation:pulse 1.5s infinite' : ''}"></span>
+              ${statusText}
+            </div>
+            <div style="font-size:.78rem;color:var(--text-muted);margin-top:.1rem">${zeitInfo}</div>
+          </div>
+        </div>`;
+    }).join('');
+
+    const aktiv  = users.filter(u => todayEntries.find(e => e.user_id === u.id && !e.end_zeit)).length;
+    const fertig = users.filter(u => todayEntries.find(e => e.user_id === u.id && !!e.end_zeit)).length;
+    const fehlt  = users.length - aktiv - fertig;
+
+    document.getElementById('zeit-user-tab').innerHTML = `
+      <!-- Heute-Status Übersicht -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem;margin-bottom:1.25rem">
+        <div class="card" style="text-align:center;padding:1rem .5rem;border-top:3px solid var(--green)">
+          <div style="font-size:1.8rem;font-weight:800;color:var(--green)">${aktiv}</div>
+          <div style="font-size:.75rem;color:var(--text-muted);margin-top:.2rem">Eingestempelt</div>
+        </div>
+        <div class="card" style="text-align:center;padding:1rem .5rem;border-top:3px solid var(--red)">
+          <div style="font-size:1.8rem;font-weight:800;color:var(--red)">${fehlt}</div>
+          <div style="font-size:.75rem;color:var(--text-muted);margin-top:.2rem">Fehlen noch</div>
+        </div>
+        <div class="card" style="text-align:center;padding:1rem .5rem;border-top:3px solid var(--navy)">
+          <div style="font-size:1.8rem;font-weight:800;color:var(--navy)">${fertig}</div>
+          <div style="font-size:.75rem;color:var(--text-muted);margin-top:.2rem">Feierabend</div>
+        </div>
+      </div>
+
+      <!-- Mitarbeiter-Liste -->
+      <div>
+        <div style="font-size:.78rem;color:var(--text-muted);margin-bottom:.6rem">${new Date().toLocaleDateString('de-DE',{weekday:'long',day:'2-digit',month:'long',year:'numeric'})} · Automatische Aktualisierung alle 60 Sek.</div>
+        ${rows || '<p style="color:var(--text-muted)">Keine Mitarbeiter vorhanden</p>'}
+      </div>`;
+
+    /* Alle 60 Sekunden automatisch aktualisieren */
+    this._teamRefreshInterval = setInterval(() => {
+      if (this.userTab === 'team') this.renderTeamTab();
+    }, 60000);
   },
 
   /* ── Tab: Heute ── */
