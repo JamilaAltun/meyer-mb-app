@@ -106,7 +106,7 @@ const RechnungenModule = {
         <div class="form-group"><label class="form-label">Nettobetrag (€)<span class="required">*</span></label><input class="form-input" type="number" id="r-netto" value="${r.gesamt_netto||''}" oninput="RechnungenModule.calcBrutto()" /></div>
         <div class="form-group"><label class="form-label">Bruttobetrag (€)</label><input class="form-input" type="number" id="r-brutto" value="${r.gesamt_brutto||''}" readonly /></div>
       </div>
-      <div class="form-group"><label class="form-label"><input type="checkbox" id="r-briefpapier" ${r.briefpapier_modus?'checked':''} /> Briefpapier-Modus</label></div>
+      <div class="form-group"><label class="form-label"><input type="checkbox" id="r-briefpapier" ${r.briefpapier_modus ?? Settings.get().briefpapier_standard ? 'checked' : ''} /> Briefpapier verwenden (hinterlegtes Briefpapier als PDF-Hintergrund)</label></div>
     `, async () => {
       const nummer = document.getElementById('r-nummer').value.trim();
       if (!nummer) { showToast('Nummer ist Pflichtfeld', 'error'); return; }

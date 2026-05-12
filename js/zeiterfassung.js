@@ -269,6 +269,9 @@ const ZeiterfassungModule = {
     setContent(`
       <div class="module-header">
         <div class="module-title">Zeiterfassung</div>
+        <div class="module-actions">
+          <button class="btn btn-primary btn-sm" onclick="ZeiterfassungModule.showAddEntryModal()">+ Eintrag hinzufügen</button>
+        </div>
       </div>
       <div class="tabs">
         ${tabs.map(([k,l]) =>
@@ -507,9 +510,13 @@ const ZeiterfassungModule = {
               <span style="font-weight:700;color:var(--navy)">${formatDuration(day.mins)}</span>
             </div>
             ${day.entries.map(e => `
-              <div style="display:flex;justify-content:space-between;font-size:.78rem;color:var(--text-muted);padding:.1rem 0">
+              <div style="display:flex;justify-content:space-between;align-items:center;font-size:.78rem;color:var(--text-muted);padding:.1rem 0">
                 <span>${formatTime(e.start_zeit)} – ${e.end_zeit?formatTime(e.end_zeit):'laufend'}${e.projekt_label?' · '+e.projekt_label:''}</span>
-                <span>${formatDuration(e.gesamt_minuten)}</span>
+                <div style="display:flex;align-items:center;gap:.2rem">
+                  <span>${formatDuration(e.gesamt_minuten)}</span>
+                  <button onclick="ZeiterfassungModule.editEntry('${e.id}')" style="background:none;border:none;cursor:pointer;padding:.1rem .25rem;border-radius:4px;color:var(--text-muted);font-size:.8rem" title="Bearbeiten">✎</button>
+                  <button onclick="ZeiterfassungModule.deleteEntry('${e.id}')" style="background:none;border:none;cursor:pointer;padding:.1rem .25rem;border-radius:4px;color:var(--red);font-size:.8rem" title="Löschen">✕</button>
+                </div>
               </div>`).join('')}
           </div>`).join('')}
       </div>`;
@@ -569,6 +576,7 @@ const ZeiterfassungModule = {
                 <th style="padding:.5rem .6rem;text-align:left;font-weight:600">Ende</th>
                 <th style="padding:.5rem .6rem;text-align:left;font-weight:600">Projekt / Bereich</th>
                 <th style="padding:.5rem .6rem;text-align:right;font-weight:600">Stunden</th>
+                <th style="padding:.5rem .6rem"></th>
               </tr>
             </thead>
             <tbody>
@@ -579,6 +587,10 @@ const ZeiterfassungModule = {
                   <td style="padding:.5rem .6rem">${e.end_zeit?formatTime(e.end_zeit):'—'}</td>
                   <td style="padding:.5rem .6rem;color:var(--text-muted)">${e.projekt_label||'—'}</td>
                   <td style="padding:.5rem .6rem;text-align:right;font-weight:600">${formatDuration(e.gesamt_minuten)}</td>
+                  <td style="padding:.5rem .4rem;white-space:nowrap">
+                    <button onclick="ZeiterfassungModule.editEntry('${e.id}')" style="background:none;border:none;cursor:pointer;padding:.2rem .35rem;border-radius:4px;color:var(--text-muted);font-size:.85rem" title="Bearbeiten">✎</button>
+                    <button onclick="ZeiterfassungModule.deleteEntry('${e.id}')" style="background:none;border:none;cursor:pointer;padding:.2rem .35rem;border-radius:4px;color:var(--red);font-size:.85rem" title="Löschen">✕</button>
+                  </td>
                 </tr>`).join('')}
             </tbody>
             <tfoot>
@@ -677,7 +689,11 @@ const ZeiterfassungModule = {
           <span class="zeit-log-type">⏱ ${formatTime(e.start_zeit)} – ${e.end_zeit ? formatTime(e.end_zeit) : 'laufend'}</span>
           ${e.projekt_label ? `<div style="font-size:.75rem;color:var(--text-muted);margin-top:.15rem">${e.projekt_label}</div>` : ''}
         </div>
-        <span class="zeit-log-time">${formatDuration(e.gesamt_minuten)}</span>
+        <div style="display:flex;align-items:center;gap:.3rem">
+          <span class="zeit-log-time">${formatDuration(e.gesamt_minuten)}</span>
+          <button onclick="ZeiterfassungModule.editEntry('${e.id}')" style="background:none;border:none;cursor:pointer;padding:.2rem .3rem;border-radius:4px;color:var(--text-muted);font-size:.85rem" title="Bearbeiten">✎</button>
+          <button onclick="ZeiterfassungModule.deleteEntry('${e.id}')" style="background:none;border:none;cursor:pointer;padding:.2rem .3rem;border-radius:4px;color:var(--red);font-size:.85rem" title="Löschen">✕</button>
+        </div>
       </div>`).join('');
   },
 
@@ -786,5 +802,203 @@ const ZeiterfassungModule = {
   exportMonthPdf() {
     showToast('Monatsreport wird erstellt...', 'info');
     PdfModule.generateMonthReport();
+  },
+
+  /* ── Eintrag bearbeiten ── */
+  async editEntry(id) {
+    const entry = this._allEntries.find(e => e.id === id);
+    if (!entry) return;
+
+    let auftraege = [];
+    try { auftraege = await DB.getAll('auftraege'); } catch {}
+    const aktiveAuftraege = auftraege.filter(a => a.workflow_status !== 'abgeschlossen');
+    const kategorien = Settings.get().zeit_kategorien || [];
+
+    const projektOpts = [{ id: null, label: null }];
+    aktiveAuftraege.forEach(a => projektOpts.push({ id: a.id, label: `${a.nummer || ''} – ${a.bezeichnung || ''}`.trim().replace(/^–\s*/, '') }));
+    kategorien.forEach(k => projektOpts.push({ id: null, label: k }));
+    this._editProjektOpts = projektOpts;
+    this._editEntryId = id;
+
+    let currentIdx = 0;
+    if (entry.projekt_id) {
+      const i = projektOpts.findIndex(p => p.id === entry.projekt_id);
+      if (i > 0) currentIdx = i;
+    } else if (entry.projekt_label) {
+      const i = projektOpts.findIndex(p => p.label === entry.projekt_label);
+      if (i > 0) currentIdx = i;
+    }
+
+    let selectContent = `<option value="0" ${currentIdx===0?'selected':''}>— Kein Projekt / Allgemein —</option>`;
+    const auftragOpts = aktiveAuftraege.map((a, i) =>
+      `<option value="${i+1}" ${currentIdx===i+1?'selected':''}>${a.nummer||''} – ${a.bezeichnung||''}</option>`).join('');
+    const katOpts = kategorien.map((k, i) =>
+      `<option value="${aktiveAuftraege.length+1+i}" ${currentIdx===aktiveAuftraege.length+1+i?'selected':''}>${k}</option>`).join('');
+    if (auftragOpts) selectContent += `<optgroup label="Aktive Aufträge">${auftragOpts}</optgroup>`;
+    if (katOpts) selectContent += `<optgroup label="Sonstige Bereiche">${katOpts}</optgroup>`;
+
+    const startTime = entry.start_zeit ? new Date(entry.start_zeit).toTimeString().slice(0, 5) : '';
+    const endTime = entry.end_zeit ? new Date(entry.end_zeit).toTimeString().slice(0, 5) : '';
+
+    openModal('Eintrag bearbeiten', `
+      <div class="form-group">
+        <label class="form-label">Datum</label>
+        <input type="date" class="form-input" id="edit-datum" value="${entry.datum}">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
+        <div class="form-group">
+          <label class="form-label">Beginn</label>
+          <input type="time" class="form-input" id="edit-start" value="${startTime}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Ende</label>
+          <input type="time" class="form-input" id="edit-end" value="${endTime}">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Projekt / Bereich</label>
+        <select class="form-select" id="edit-projekt">${selectContent}</select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notiz</label>
+        <input type="text" class="form-input" id="edit-notiz" value="${entry.notiz || ''}">
+      </div>
+    `, () => this._saveEditEntry(), 'Speichern');
+  },
+
+  async _saveEditEntry() {
+    const datum = document.getElementById('edit-datum').value;
+    const startStr = document.getElementById('edit-start').value;
+    const endStr = document.getElementById('edit-end').value;
+    const projektIdx = parseInt(document.getElementById('edit-projekt').value) || 0;
+    const notiz = document.getElementById('edit-notiz').value.trim();
+
+    if (!datum || !startStr) { showToast('Datum und Beginn sind Pflichtfelder', 'error'); return false; }
+
+    const start_zeit = new Date(`${datum}T${startStr}:00`).toISOString();
+    const end_zeit = endStr ? new Date(`${datum}T${endStr}:00`).toISOString() : null;
+    let gesamt_minuten = 0;
+    if (end_zeit) {
+      gesamt_minuten = Math.max(0, Math.round((new Date(end_zeit) - new Date(start_zeit)) / 60000));
+    }
+
+    const opt = this._editProjektOpts?.[projektIdx] || { id: null, label: null };
+
+    try {
+      await DB.update('zeiterfassung', this._editEntryId, {
+        datum, start_zeit, end_zeit, gesamt_minuten,
+        projekt_id: opt.id || null,
+        projekt_label: opt.label || null,
+        notiz: notiz || null,
+      });
+      showToast('Eintrag aktualisiert', 'success');
+      this._allEntries = await DB.getAll('zeiterfassung', { user_id: Auth.userId() });
+      this.renderUserTab();
+    } catch (e) { showToast('Fehler: ' + e.message, 'error'); }
+  },
+
+  /* ── Eintrag löschen ── */
+  async deleteEntry(id) {
+    const entry = this._allEntries.find(e => e.id === id);
+    if (!entry) return;
+    if (!confirm(`Eintrag vom ${formatDate(entry.datum)} (${formatTime(entry.start_zeit)}) wirklich löschen?`)) return;
+    try {
+      await DB.delete('zeiterfassung', id);
+      showToast('Eintrag gelöscht', 'success');
+      this._allEntries = await DB.getAll('zeiterfassung', { user_id: Auth.userId() });
+      this.renderUserTab();
+    } catch (e) { showToast('Fehler: ' + e.message, 'error'); }
+  },
+
+  /* ── Eintrag manuell hinzufügen ── */
+  async showAddEntryModal() {
+    let auftraege = [], users = [];
+    try { auftraege = await DB.getAll('auftraege'); } catch {}
+
+    const aktiveAuftraege = auftraege.filter(a => a.workflow_status !== 'abgeschlossen');
+    const kategorien = Settings.get().zeit_kategorien || [];
+
+    this._addProjektOpts = [{ id: null, label: null }];
+    aktiveAuftraege.forEach(a => this._addProjektOpts.push({ id: a.id, label: `${a.nummer || ''} – ${a.bezeichnung || ''}`.trim().replace(/^–\s*/, '') }));
+    kategorien.forEach(k => this._addProjektOpts.push({ id: null, label: k }));
+
+    let selectContent = `<option value="0">— Kein Projekt / Allgemein —</option>`;
+    const auftragOpts = aktiveAuftraege.map((a, i) =>
+      `<option value="${i+1}">${a.nummer||''} – ${a.bezeichnung||''}</option>`).join('');
+    const katOpts = kategorien.map((k, i) =>
+      `<option value="${aktiveAuftraege.length+1+i}">${k}</option>`).join('');
+    if (auftragOpts) selectContent += `<optgroup label="Aktive Aufträge">${auftragOpts}</optgroup>`;
+    if (katOpts) selectContent += `<optgroup label="Sonstige Bereiche">${katOpts}</optgroup>`;
+
+    let userSelect = '';
+    if (Auth.isAdmin()) {
+      try { users = await DB.getAll('users'); } catch {}
+      userSelect = `
+      <div class="form-group">
+        <label class="form-label">Mitarbeiter</label>
+        <select class="form-select" id="add-user">
+          ${users.map(u => `<option value="${u.id}" ${u.id === Auth.userId() ? 'selected' : ''}>${u.name}</option>`).join('')}
+        </select>
+      </div>`;
+    }
+
+    openModal('Eintrag manuell hinzufügen', `
+      ${userSelect}
+      <div class="form-group">
+        <label class="form-label">Datum</label>
+        <input type="date" class="form-input" id="add-datum" value="${today()}">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
+        <div class="form-group">
+          <label class="form-label">Beginn</label>
+          <input type="time" class="form-input" id="add-start">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Ende (optional)</label>
+          <input type="time" class="form-input" id="add-end">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Projekt / Bereich</label>
+        <select class="form-select" id="add-projekt">${selectContent}</select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notiz (optional)</label>
+        <input type="text" class="form-input" id="add-notiz" placeholder="z.B. Vergessen einzustempeln">
+      </div>
+    `, () => this._saveNewEntry(), 'Hinzufügen');
+  },
+
+  async _saveNewEntry() {
+    const datum = document.getElementById('add-datum').value;
+    const startStr = document.getElementById('add-start').value;
+    const endStr = document.getElementById('add-end').value;
+    const projektIdx = parseInt(document.getElementById('add-projekt').value) || 0;
+    const notiz = document.getElementById('add-notiz').value.trim();
+    const user_id = document.getElementById('add-user')?.value || Auth.userId();
+
+    if (!datum || !startStr) { showToast('Datum und Beginn sind Pflichtfelder', 'error'); return false; }
+
+    const start_zeit = new Date(`${datum}T${startStr}:00`).toISOString();
+    const end_zeit = endStr ? new Date(`${datum}T${endStr}:00`).toISOString() : null;
+    let gesamt_minuten = 0;
+    if (end_zeit) {
+      gesamt_minuten = Math.max(0, Math.round((new Date(end_zeit) - new Date(start_zeit)) / 60000));
+    }
+
+    const opt = this._addProjektOpts?.[projektIdx] || { id: null, label: null };
+
+    try {
+      await DB.insert('zeiterfassung', {
+        user_id, datum, start_zeit, end_zeit, gesamt_minuten,
+        projekt_id: opt.id || null,
+        projekt_label: opt.label || null,
+        notiz: notiz || null,
+        sync_status: 'pending',
+      });
+      showToast('Eintrag hinzugefügt', 'success');
+      this._allEntries = await DB.getAll('zeiterfassung', { user_id: Auth.userId() });
+      this.renderUserTab();
+    } catch (e) { showToast('Fehler: ' + e.message, 'error'); }
   },
 };

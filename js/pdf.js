@@ -7,7 +7,18 @@ const PdfModule = {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     const briefpapier = a.briefpapier_modus;
-    const topMargin = briefpapier ? 60 : 20;
+    const margins = s.briefpapier_margins || { top: 45, bottom: 25, left: 20, right: 20 };
+    const topMargin = briefpapier ? margins.top : 20;
+    const leftMargin = briefpapier ? margins.left : 15;
+    const pageWidth = 210;
+    const contentWidth = pageWidth - leftMargin - (briefpapier ? margins.right : 15);
+
+    const addBriefpapierBg = () => {
+      if (briefpapier && s.briefpapier_url) {
+        doc.addImage(s.briefpapier_url, 0, 0, 210, 297);
+      }
+    };
+    addBriefpapierBg();
 
     if (!briefpapier) {
       /* Firmenkopf */
@@ -22,49 +33,53 @@ const PdfModule = {
     }
 
     let y = topMargin + 10;
+    const rightEdge = pageWidth - (briefpapier ? margins.right : 15);
     doc.setFontSize(11); doc.setFont('helvetica','bold');
     doc.setTextColor(0,0,0);
-    doc.text('ANGEBOT', 15, y);
+    doc.text('ANGEBOT', leftMargin, y);
     doc.setFont('helvetica','normal'); doc.setFontSize(9);
     y += 6;
-    doc.text(`Angebotsnummer: ${a.nummer}`, 15, y); y += 5;
-    doc.text(`Datum: ${formatDate(a.datum)}`, 15, y); y += 5;
-    if (a.gueltig_bis) { doc.text(`Gültig bis: ${formatDate(a.gueltig_bis)}`, 15, y); y += 5; }
+    doc.text(`Angebotsnummer: ${a.nummer}`, leftMargin, y); y += 5;
+    doc.text(`Datum: ${formatDate(a.datum)}`, leftMargin, y); y += 5;
+    if (a.gueltig_bis) { doc.text(`Gültig bis: ${formatDate(a.gueltig_bis)}`, leftMargin, y); y += 5; }
 
     if (k) {
       y += 5;
-      doc.setFont('helvetica','bold'); doc.text('Kunde:', 15, y); doc.setFont('helvetica','normal');
-      y += 5; doc.text(k.firma || k.name, 15, y);
-      if (k.ansprechpartner) { y += 4; doc.text(k.ansprechpartner, 15, y); }
-      if (k.adresse) { y += 4; doc.text(`${k.adresse}, ${k.plz||''} ${k.ort||''}`, 15, y); }
+      doc.setFont('helvetica','bold'); doc.text('Kunde:', leftMargin, y); doc.setFont('helvetica','normal');
+      y += 5; doc.text(k.firma || k.name, leftMargin, y);
+      if (k.ansprechpartner) { y += 4; doc.text(k.ansprechpartner, leftMargin, y); }
+      if (k.adresse) { y += 4; doc.text(`${k.adresse}, ${k.plz||''} ${k.ort||''}`, leftMargin, y); }
     }
 
     y += 10;
     doc.setFillColor(13,16,74); doc.setTextColor(255,255,255);
-    doc.rect(15, y, 180, 7, 'F');
+    doc.rect(leftMargin, y, contentWidth, 7, 'F');
     doc.setFontSize(8); doc.setFont('helvetica','bold');
-    doc.text('Pos.', 17, y+5); doc.text('Bezeichnung', 28, y+5); doc.text('Menge', 120, y+5); doc.text('Einheit', 135, y+5); doc.text('EP (€)', 150, y+5); doc.text('GP (€)', 170, y+5);
+    const col2 = leftMargin + 11, col3 = leftMargin + contentWidth * 0.62, col4 = leftMargin + contentWidth * 0.72, col5 = leftMargin + contentWidth * 0.82, col6 = leftMargin + contentWidth * 0.93;
+    doc.text('Pos.', leftMargin + 2, y+5); doc.text('Bezeichnung', col2, y+5); doc.text('Menge', col3, y+5); doc.text('Einheit', col4, y+5); doc.text('EP (€)', col5, y+5); doc.text('GP (€)', col6, y+5);
 
     y += 9; doc.setTextColor(0,0,0); doc.setFont('helvetica','normal'); doc.setFontSize(8);
+    const bottomLimit = 297 - (briefpapier ? margins.bottom : 25);
     (a.positionen||[]).forEach((p, i) => {
-      if (y > 270) { doc.addPage(); y = 20; }
-      doc.text(String(i+1), 17, y);
-      doc.text(p.bezeichnung||'', 28, y, { maxWidth: 90 });
-      doc.text(String(p.menge||1), 120, y);
-      doc.text(p.einheit||'Stk', 135, y);
-      doc.text(formatCurrency(p.einzelpreis||0), 148, y, { align: 'right' });
-      doc.text(formatCurrency((p.menge||1)*(p.einzelpreis||0)), 195, y, { align: 'right' });
+      if (y > bottomLimit) { doc.addPage(); addBriefpapierBg(); y = briefpapier ? margins.top : 20; }
+      doc.text(String(i+1), leftMargin + 2, y);
+      doc.text(p.bezeichnung||'', col2, y, { maxWidth: contentWidth * 0.48 });
+      doc.text(String(p.menge||1), col3, y);
+      doc.text(p.einheit||'Stk', col4, y);
+      doc.text(formatCurrency(p.einzelpreis||0), col5 + 11, y, { align: 'right' });
+      doc.text(formatCurrency((p.menge||1)*(p.einzelpreis||0)), rightEdge, y, { align: 'right' });
       y += 6;
-      doc.setDrawColor(230,230,230); doc.line(15, y-1, 195, y-1);
+      doc.setDrawColor(230,230,230); doc.line(leftMargin, y-1, rightEdge, y-1);
     });
 
     y += 5;
+    const sumLeft = leftMargin + contentWidth * 0.6;
     doc.setFont('helvetica','bold');
-    doc.text('Nettobetrag:', 130, y); doc.text(formatCurrency(a.gesamt_netto||0), 195, y, { align: 'right' }); y += 5;
+    doc.text('Nettobetrag:', sumLeft, y); doc.text(formatCurrency(a.gesamt_netto||0), rightEdge, y, { align: 'right' }); y += 5;
     doc.setFont('helvetica','normal');
-    doc.text(`MwSt. ${a.mwst_satz||19}%:`, 130, y); doc.text(formatCurrency((a.gesamt_brutto||0)-(a.gesamt_netto||0)), 195, y, { align: 'right' }); y += 5;
+    doc.text(`MwSt. ${a.mwst_satz||19}%:`, sumLeft, y); doc.text(formatCurrency((a.gesamt_brutto||0)-(a.gesamt_netto||0)), rightEdge, y, { align: 'right' }); y += 5;
     doc.setFont('helvetica','bold'); doc.setFontSize(10);
-    doc.text('Gesamtbetrag:', 130, y); doc.text(formatCurrency(a.gesamt_brutto||0), 195, y, { align: 'right' });
+    doc.text('Gesamtbetrag:', sumLeft, y); doc.text(formatCurrency(a.gesamt_brutto||0), rightEdge, y, { align: 'right' });
 
     if (!briefpapier) {
       y = 275;
@@ -86,7 +101,20 @@ const PdfModule = {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     const briefpapier = r.briefpapier_modus;
-    const topMargin = briefpapier ? 60 : 20;
+    const margins = s.briefpapier_margins || { top: 45, bottom: 25, left: 20, right: 20 };
+    const topMargin = briefpapier ? margins.top : 20;
+    const leftMargin = briefpapier ? margins.left : 15;
+    const pageWidth = 210;
+    const contentWidth = pageWidth - leftMargin - (briefpapier ? margins.right : 15);
+    const rightEdge = pageWidth - (briefpapier ? margins.right : 15);
+    const bottomLimit = 297 - (briefpapier ? margins.bottom : 25);
+
+    const addBriefpapierBg = () => {
+      if (briefpapier && s.briefpapier_url) {
+        doc.addImage(s.briefpapier_url, 0, 0, 210, 297);
+      }
+    };
+    addBriefpapierBg();
 
     if (!briefpapier) {
       doc.setFillColor(13,16,74); doc.rect(0,0,210,35,'F');
@@ -99,32 +127,33 @@ const PdfModule = {
 
     let y = topMargin + 10;
     doc.setFontSize(14); doc.setFont('helvetica','bold'); doc.setTextColor(0,0,0);
-    doc.text(r.typ === 'schluss' ? 'SCHLUSSRECHNUNG' : 'ABSCHLAGSRECHNUNG', 15, y);
+    doc.text(r.typ === 'schluss' ? 'SCHLUSSRECHNUNG' : 'ABSCHLAGSRECHNUNG', leftMargin, y);
     doc.setFont('helvetica','normal'); doc.setFontSize(9); y += 7;
-    doc.text(`Rechnungsnummer: ${r.nummer}`, 15, y); y += 5;
-    doc.text(`Datum: ${formatDate(r.datum)}`, 15, y); y += 5;
-    if (r.leistungszeitraum) { doc.text(`Leistungszeitraum: ${r.leistungszeitraum}`, 15, y); y += 5; }
-    doc.text(`Zahlungsziel: ${r.zahlungsziel || s.zahlungsziel_standard || '14 Tage netto'}`, 15, y); y += 5;
-    if (s.skonto_text) { doc.text(s.skonto_text, 15, y); y += 5; }
+    doc.text(`Rechnungsnummer: ${r.nummer}`, leftMargin, y); y += 5;
+    doc.text(`Datum: ${formatDate(r.datum)}`, leftMargin, y); y += 5;
+    if (r.leistungszeitraum) { doc.text(`Leistungszeitraum: ${r.leistungszeitraum}`, leftMargin, y); y += 5; }
+    doc.text(`Zahlungsziel: ${r.zahlungsziel || s.zahlungsziel_standard || '14 Tage netto'}`, leftMargin, y); y += 5;
+    if (s.skonto_text) { doc.text(s.skonto_text, leftMargin, y); y += 5; }
 
     if (k) {
-      y += 5; doc.setFont('helvetica','bold'); doc.text('Rechnungsempfänger:', 15, y); doc.setFont('helvetica','normal');
-      y += 5; doc.text(k.firma || k.name, 15, y);
-      if (k.adresse) { y += 4; doc.text(`${k.adresse}, ${k.plz||''} ${k.ort||''}`, 15, y); }
+      y += 5; doc.setFont('helvetica','bold'); doc.text('Rechnungsempfänger:', leftMargin, y); doc.setFont('helvetica','normal');
+      y += 5; doc.text(k.firma || k.name, leftMargin, y);
+      if (k.adresse) { y += 4; doc.text(`${k.adresse}, ${k.plz||''} ${k.ort||''}`, leftMargin, y); }
     }
 
+    const sumLeft = leftMargin + contentWidth * 0.6;
     y += 10;
     doc.setFont('helvetica','bold'); doc.setFontSize(9);
-    doc.text(`Nettobetrag:`, 130, y); doc.text(formatCurrency(r.gesamt_netto||0), 195, y, { align:'right' }); y += 5;
+    doc.text(`Nettobetrag:`, sumLeft, y); doc.text(formatCurrency(r.gesamt_netto||0), rightEdge, y, { align:'right' }); y += 5;
     doc.setFont('helvetica','normal');
-    doc.text(`MwSt. ${r.mwst_satz||19}%:`, 130, y); doc.text(formatCurrency((r.gesamt_brutto||0)-(r.gesamt_netto||0)), 195, y, { align:'right' }); y += 5;
+    doc.text(`MwSt. ${r.mwst_satz||19}%:`, sumLeft, y); doc.text(formatCurrency((r.gesamt_brutto||0)-(r.gesamt_netto||0)), rightEdge, y, { align:'right' }); y += 5;
     doc.setFont('helvetica','bold'); doc.setFontSize(11);
-    doc.text('Gesamtbetrag:', 130, y); doc.text(formatCurrency(r.gesamt_brutto||0), 195, y, { align:'right' });
+    doc.text('Gesamtbetrag:', sumLeft, y); doc.text(formatCurrency(r.gesamt_brutto||0), rightEdge, y, { align:'right' });
 
     y += 15; doc.setFontSize(8); doc.setFont('helvetica','normal');
-    doc.text('Bankverbindung:', 15, y); y += 4;
-    if (s.iban) doc.text(`IBAN: ${s.iban}`, 15, y); y += 4;
-    if (s.bic) doc.text(`BIC: ${s.bic}`, 15, y);
+    doc.text('Bankverbindung:', leftMargin, y); y += 4;
+    if (s.iban) doc.text(`IBAN: ${s.iban}`, leftMargin, y); y += 4;
+    if (s.bic) doc.text(`BIC: ${s.bic}`, leftMargin, y);
 
     if (!briefpapier) {
       y = 275; doc.setFontSize(7); doc.setTextColor(100,100,100);

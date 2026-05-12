@@ -8,6 +8,8 @@
   .form-row-3 { grid-template-columns: 1fr 1fr; }
   .kpi-grid { grid-template-columns: repeat(2, 1fr); }
   .chat-list { width: 220px; }
+  .dash-side-grid { grid-template-columns: 1fr; }
+  .main-content { padding: 1.5rem; }
 }
 
 /* ── Mobil & Tablet (bis 768px) ── */
@@ -52,6 +54,18 @@
   /* Modul Header */
   .module-header { flex-direction: column; align-items: flex-start; }
   .module-actions { width: 100%; justify-content: flex-start; }
+
+  /* Dashboard */
+  .dash-side-grid { grid-template-columns: 1fr; }
+  .quick-actions { gap: .4rem; }
+  .quick-action-btn { font-size: .78rem; padding: .45rem .75rem; }
+
+  /* Kanban */
+  .kanban-board { min-height: 400px; }
+  .kanban-col { width: 260px; }
+
+  /* Kunden Cards */
+  .customer-grid { grid-template-columns: 1fr; }
 
   /* Form rows: 1 Spalte */
   .form-row, .form-row-3 { grid-template-columns: 1fr; }

@@ -178,8 +178,8 @@ const AnfragenModule = {
         <textarea class="form-textarea" id="ang-notizen">${a.notizen || ''}</textarea></div>
       <div class="form-group">
         <label class="form-label">
-          <input type="checkbox" id="ang-briefpapier" ${a.briefpapier_modus?'checked':''} />
-          Briefpapier-Modus (Rand für vorhandenes Briefpapier lassen)
+          <input type="checkbox" id="ang-briefpapier" ${a.briefpapier_modus ?? Settings.get().briefpapier_standard ? 'checked' : ''} />
+          Briefpapier verwenden (hinterlegtes Briefpapier als PDF-Hintergrund)
         </label>
       </div>
     `, async () => {

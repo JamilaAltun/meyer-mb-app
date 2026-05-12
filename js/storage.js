@@ -48,7 +48,19 @@ const LS = {
     catch { return []; }
   },
   set(key, data) {
-    localStorage.setItem('mmg_' + key, JSON.stringify(data));
+    try {
+      localStorage.setItem('mmg_' + key, JSON.stringify(data));
+    } catch (e) {
+      /* Quota überschritten → Bild-Daten aus Cache entfernen und nochmal versuchen */
+      if (e.name === 'QuotaExceededError' || e.code === 22) {
+        try {
+          const stripped = Array.isArray(data)
+            ? data.map(r => r.text?.startsWith('{"_c":1') ? { ...r, text: '{"_c":1,"text":"","bilder":[]}' } : r)
+            : data;
+          localStorage.setItem('mmg_' + key, JSON.stringify(stripped));
+        } catch {}
+      }
+    }
   },
   getOne(key) {
     try { return JSON.parse(localStorage.getItem('mmg_' + key) || 'null'); }

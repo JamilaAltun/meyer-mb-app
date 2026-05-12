@@ -214,9 +214,28 @@ create table if not exists chat_nachrichten (
   an_user_id text,
   auftrag_id text,
   text text,
+  bilder text[] default '{}',
   gelesen boolean default false,
   erstellt_am timestamptz default now()
 );
+
+-- Falls Tabelle schon existiert, Spalte nachrüsten:
+alter table chat_nachrichten add column if not exists bilder text[] default '{}';
+
+-- Storage-Bucket für Chat-Bilder
+insert into storage.buckets (id, name, public)
+values ('chat-bilder', 'chat-bilder', true)
+on conflict (id) do nothing;
+
+-- Jeder eingeloggte User darf Bilder hochladen und lesen
+create policy if not exists "chat bilder lesen" on storage.objects
+  for select using (bucket_id = 'chat-bilder');
+
+create policy if not exists "chat bilder hochladen" on storage.objects
+  for insert with check (bucket_id = 'chat-bilder' and auth.role() = 'authenticated');
+
+create policy if not exists "chat bilder loeschen" on storage.objects
+  for delete using (bucket_id = 'chat-bilder' and auth.uid()::text = (storage.foldername(name))[1]);
 
 -- Tickets
 create table if not exists tickets (

@@ -5,7 +5,7 @@ const EinstellungenModule = {
     setContent(`
       <div class="module-header"><div class="module-title">Einstellungen</div></div>
       <div class="tabs">
-        ${[['firma','Firmendaten'],['logo','Logo'],['mitarbeiter','Mitarbeiter & Berechtigungen'],['nummern','Nummernkreise'],['zahlung','Zahlungsbedingungen'],['zeiterfassung','Zeiterfassung'],['backup','Backups'],['demo','Demo-Daten']].map(([k,l]) =>
+        ${[['firma','Firmendaten'],['logo','Logo'],['briefpapier','Briefpapier'],['mitarbeiter','Mitarbeiter & Berechtigungen'],['nummern','Nummernkreise'],['zahlung','Zahlungsbedingungen'],['zeiterfassung','Zeiterfassung'],['backup','Backups'],['demo','Demo-Daten']].map(([k,l]) =>
           `<div class="tab-btn ${this.activeTab===k?'active':''}" onclick="EinstellungenModule.activeTab='${k}';EinstellungenModule.renderTab()">${l}</div>`
         ).join('')}
       </div>
@@ -14,12 +14,11 @@ const EinstellungenModule = {
   },
 
   renderTab() {
-    const container = document.getElementById('einst-tab-content');
     document.querySelectorAll('.tab-btn').forEach(b => {
-      const tabs = ['firma','logo','mitarbeiter','nummern','zahlung','zeiterfassung','backup'];
-      b.classList.toggle('active', tabs.some((t,i) => b.getAttribute('onclick')?.includes(`'${t}'`) && this.activeTab === t));
+      const tabs = ['firma','logo','briefpapier','mitarbeiter','nummern','zahlung','zeiterfassung','backup','demo'];
+      b.classList.toggle('active', tabs.some(t => b.getAttribute('onclick')?.includes(`'${t}'`) && this.activeTab === t));
     });
-    const map = { firma: () => this.renderFirma(), logo: () => this.renderLogo(), mitarbeiter: () => this.renderMitarbeiter(), nummern: () => this.renderNummern(), zahlung: () => this.renderZahlung(), zeiterfassung: () => this.renderZeiterfassung(), backup: () => BackupModule.renderTab(), demo: () => this.renderDemo() };
+    const map = { firma: () => this.renderFirma(), logo: () => this.renderLogo(), briefpapier: () => this.renderBriefpapier(), mitarbeiter: () => this.renderMitarbeiter(), nummern: () => this.renderNummern(), zahlung: () => this.renderZahlung(), zeiterfassung: () => this.renderZeiterfassung(), backup: () => BackupModule.renderTab(), demo: () => this.renderDemo() };
     map[this.activeTab]?.();
   },
 
@@ -267,6 +266,160 @@ ${s.firma_name || 'Meyer Metallbau GmbH'}`
         window.open(`mailto:${email}?subject=${subject}&body=${body}`);
       }
     }, 'Anlegen', 'lg');
+  },
+
+  renderBriefpapier() {
+    const s = Settings.get();
+    const margins = s.briefpapier_margins || { top: 45, bottom: 25, left: 20, right: 20 };
+    document.getElementById('einst-tab-content').innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;max-width:900px">
+
+        <!-- Linke Spalte: Upload & Einstellungen -->
+        <div>
+          <div class="card" style="margin-bottom:1rem">
+            <div class="card-header"><span class="card-title">Briefpapier hochladen</span></div>
+            <p style="font-size:.85rem;color:var(--text-muted);margin-bottom:1rem;line-height:1.6">
+              Laden Sie Ihr vorgedrucktes Briefpapier als Bild hoch. Es wird automatisch als Hintergrund in alle PDFs (Angebote, Rechnungen, Aufträge) eingebettet, wenn der Briefpapier-Modus aktiviert ist.
+            </p>
+
+            ${s.briefpapier_url
+              ? `<div style="margin-bottom:1rem;border:1px solid var(--card-border);border-radius:var(--radius);overflow:hidden;max-height:200px;display:flex;align-items:center;justify-content:center;background:#f8f9fa">
+                   <img src="${s.briefpapier_url}" alt="Briefpapier Vorschau" style="max-width:100%;max-height:200px;object-fit:contain" />
+                 </div>
+                 <div style="display:flex;gap:.5rem;margin-bottom:1rem">
+                   <div style="flex:1;padding:.5rem .75rem;background:var(--bg);border-radius:var(--radius);font-size:.82rem;color:var(--text-muted)">
+                     <i class="fa-solid fa-check-circle" style="color:var(--green);margin-right:.3rem"></i>Briefpapier hinterlegt
+                   </div>
+                 </div>`
+              : `<p style="color:var(--text-muted);font-size:.875rem;margin-bottom:1rem">Noch kein Briefpapier hochgeladen.</p>`}
+
+            <div class="upload-zone" onclick="document.getElementById('bp-file').click()" style="cursor:pointer">
+              <div class="upload-icon"><i class="fa-solid fa-file-image" style="font-size:1.5rem;color:var(--navy)"></i></div>
+              <div class="upload-text">${s.briefpapier_url ? 'Briefpapier ersetzen' : 'Briefpapier hochladen'}</div>
+              <div class="upload-hint">PNG oder JPG, A4-Format (210 × 297 mm) empfohlen</div>
+            </div>
+            <input type="file" id="bp-file" accept="image/png,image/jpeg" style="display:none" onchange="EinstellungenModule.uploadBriefpapier(this)" />
+            ${s.briefpapier_url ? `<button class="btn btn-danger btn-sm" style="margin-top:.75rem" onclick="EinstellungenModule.removeBriefpapier()">Briefpapier entfernen</button>` : ''}
+          </div>
+
+          <!-- Seitenränder -->
+          <div class="card">
+            <div class="card-header"><span class="card-title">Seitenränder für Inhalt</span></div>
+            <p style="font-size:.82rem;color:var(--text-muted);margin-bottom:1rem">Legen Sie fest, wo der Textinhalt auf dem Briefpapier beginnt (in mm). Passen Sie die Werte an Ihr vorgedrucktes Briefpapier an.</p>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label"><i class="fa-solid fa-arrow-up" style="font-size:.7rem"></i> Oben (mm)</label>
+                <input class="form-input" type="number" id="bp-top" value="${margins.top}" min="0" max="150" />
+              </div>
+              <div class="form-group">
+                <label class="form-label"><i class="fa-solid fa-arrow-down" style="font-size:.7rem"></i> Unten (mm)</label>
+                <input class="form-input" type="number" id="bp-bottom" value="${margins.bottom}" min="0" max="100" />
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label"><i class="fa-solid fa-arrow-left" style="font-size:.7rem"></i> Links (mm)</label>
+                <input class="form-input" type="number" id="bp-left" value="${margins.left}" min="0" max="80" />
+              </div>
+              <div class="form-group">
+                <label class="form-label"><i class="fa-solid fa-arrow-right" style="font-size:.7rem"></i> Rechts (mm)</label>
+                <input class="form-input" type="number" id="bp-right" value="${margins.right}" min="0" max="80" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;font-size:.875rem;margin-top:.25rem">
+                <input type="checkbox" id="bp-default" ${s.briefpapier_standard ? 'checked' : ''} />
+                Briefpapier-Modus standardmäßig bei neuen Dokumenten aktivieren
+              </label>
+            </div>
+            <button class="btn btn-primary" onclick="EinstellungenModule.saveBriefpapierSettings()">Einstellungen speichern</button>
+          </div>
+        </div>
+
+        <!-- Rechte Spalte: Vorschau & Hilfe -->
+        <div>
+          <div class="card" style="margin-bottom:1rem">
+            <div class="card-header"><span class="card-title">A4-Vorschau</span></div>
+            <div style="position:relative;width:100%;padding-bottom:141.4%;background:#fff;border:1px solid var(--card-border);border-radius:var(--radius);overflow:hidden">
+              ${s.briefpapier_url
+                ? `<img src="${s.briefpapier_url}" alt="Briefpapier" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover" />`
+                : `<div style="position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:repeating-linear-gradient(45deg,#f8f8f8,#f8f8f8 10px,#fff 10px,#fff 20px)">
+                     <div style="text-align:center;color:var(--text-muted);font-size:.8rem">
+                       <i class="fa-solid fa-file-image" style="font-size:2rem;margin-bottom:.5rem;display:block;opacity:.3"></i>
+                       Noch kein Briefpapier
+                     </div>
+                   </div>`}
+              <!-- Inhaltsbereich-Overlay -->
+              <div style="position:absolute;top:${margins.top / 297 * 100}%;left:${margins.left / 210 * 100}%;right:${margins.right / 210 * 100}%;bottom:${margins.bottom / 297 * 100}%;border:2px dashed rgba(37,99,235,.5);border-radius:2px;pointer-events:none">
+                <div style="position:absolute;top:-1.4rem;left:0;font-size:.6rem;color:var(--accent);font-weight:600;white-space:nowrap;background:rgba(37,99,235,.08);padding:.1rem .3rem;border-radius:3px">Textbereich</div>
+              </div>
+            </div>
+            <p style="font-size:.75rem;color:var(--text-muted);margin-top:.5rem;text-align:center">Blauer Rahmen = Bereich für Textinhalt</p>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><span class="card-title">So funktioniert es</span></div>
+            <div style="font-size:.83rem;line-height:1.75;color:var(--text)">
+              <div style="display:flex;gap:.6rem;margin-bottom:.6rem">
+                <span style="flex-shrink:0;width:20px;height:20px;background:var(--navy);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700">1</span>
+                <span>Briefpapier als PNG/JPG hochladen (A4, 2480×3508 px für 300 dpi empfohlen)</span>
+              </div>
+              <div style="display:flex;gap:.6rem;margin-bottom:.6rem">
+                <span style="flex-shrink:0;width:20px;height:20px;background:var(--navy);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700">2</span>
+                <span>Seitenränder anpassen, damit der Inhalt nicht über Logo/Adressfeld des Briefpapiers gedruckt wird</span>
+              </div>
+              <div style="display:flex;gap:.6rem;margin-bottom:.6rem">
+                <span style="flex-shrink:0;width:20px;height:20px;background:var(--navy);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700">3</span>
+                <span>Beim PDF-Export eines Angebots oder einer Rechnung den Schalter <strong>„Briefpapier verwenden"</strong> aktivieren</span>
+              </div>
+              <div style="display:flex;gap:.6rem">
+                <span style="flex-shrink:0;width:20px;height:20px;background:var(--green);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.7rem">✓</span>
+                <span>Das Briefpapier wird dann als Hintergrund eingebettet — der automatisch generierte Firmenkopf wird deaktiviert</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>`;
+  },
+
+  uploadBriefpapier(input) {
+    const file = input.files[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('Datei zu groß (max. 5 MB)', 'error');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = e => {
+      Settings.set({ briefpapier_url: e.target.result });
+      showToast('Briefpapier gespeichert', 'success');
+      this.renderBriefpapier();
+    };
+    reader.readAsDataURL(file);
+  },
+
+  removeBriefpapier() {
+    openModal('Briefpapier entfernen', '<p>Das hinterlegte Briefpapier wird gelöscht. PDFs werden wieder mit dem automatisch generierten Firmenkopf erstellt.</p>', () => {
+      Settings.set({ briefpapier_url: '' });
+      closeModal();
+      showToast('Briefpapier entfernt', 'info');
+      this.renderBriefpapier();
+    }, 'Entfernen');
+    document.getElementById('modal-confirm-btn').className = 'btn btn-danger';
+  },
+
+  saveBriefpapierSettings() {
+    Settings.set({
+      briefpapier_margins: {
+        top: parseInt(document.getElementById('bp-top').value) || 45,
+        bottom: parseInt(document.getElementById('bp-bottom').value) || 25,
+        left: parseInt(document.getElementById('bp-left').value) || 20,
+        right: parseInt(document.getElementById('bp-right').value) || 20,
+      },
+      briefpapier_standard: document.getElementById('bp-default').checked,
+    });
+    showToast('Briefpapier-Einstellungen gespeichert', 'success');
+    this.renderBriefpapier();
   },
 
   renderNummern() {
