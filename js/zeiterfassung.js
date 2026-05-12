@@ -10,6 +10,15 @@ const ZeiterfassungModule = {
   /* ── Widget in Sidebar initialisieren ── */
   initWidget() {
     this.loadState();
+    /* Laufenden Timer beim Seitenstart pausieren — Zeit soll nicht unkontrolliert
+       weiterlaufen wenn der Browser geschlossen oder die Seite neu geladen wurde */
+    if (this.state.status === 'working') {
+      const now = new Date().toISOString();
+      this.state.status = 'paused';
+      this.state.pauseStart = now;
+      if (this.state.log) this.state.log.push({ type: 'pause', time: now });
+      this.saveState();
+    }
     this.updateWidget();
 
     document.getElementById('sidebar-start-btn').addEventListener('click', () => this.start());
