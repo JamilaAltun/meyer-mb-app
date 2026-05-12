@@ -176,6 +176,13 @@ function initProfilePanel() {
   overlay.addEventListener('click', close);
 
   logoutBtn.addEventListener('click', () => {
+    if (typeof ZeiterfassungModule !== 'undefined') {
+      clearInterval(ZeiterfassungModule.timerInterval);
+      clearInterval(ZeiterfassungModule._teamRefreshInterval);
+      ZeiterfassungModule.timerInterval = null;
+      ZeiterfassungModule.state = null;
+      ZeiterfassungModule.userTab = null;
+    }
     Auth.logout();
     close();
     document.getElementById('app-shell').classList.add('hidden');
