@@ -175,13 +175,13 @@ function initProfilePanel() {
   closeBtn.addEventListener('click', close);
   overlay.addEventListener('click', close);
 
-  logoutBtn.addEventListener('click', async () => {
+  logoutBtn.addEventListener('click', () => {
     if (typeof ZeiterfassungModule !== 'undefined') {
       const zs = ZeiterfassungModule;
       clearInterval(zs.timerInterval);
       clearInterval(zs._teamRefreshInterval);
       zs.timerInterval = null;
-      await zs._autoStopOnLogout();
+      zs._saveSessionOnLogout(); /* synchron: reset + DB im Hintergrund */
       zs.state = null;
       zs.userTab = null;
     }

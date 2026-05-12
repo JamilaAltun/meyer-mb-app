@@ -5,7 +5,7 @@
   <script>
     /* Cache-Buster: bei neuer Version alle SW und Caches löschen und neu laden */
     (function() {
-      var V = '10';
+      var V = '11';
       if (localStorage.getItem('mmg_v') !== V) {
         localStorage.setItem('mmg_v', V);
         if ('serviceWorker' in navigator) {

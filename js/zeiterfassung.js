@@ -807,40 +807,41 @@ const ZeiterfassungModule = {
     `);
   },
 
-  /* ── Beim Logout: Timer stoppen & Eintrag speichern ── */
-  async _autoStopOnLogout() {
+  /* ── Beim Logout: Timer stoppen, Zustand sofort zurücksetzen, DB im Hintergrund ── */
+  _saveSessionOnLogout() {
     if (!this.state || this.state.status === 'idle' || this.state.status === 'gone') {
-      this._resetState();
+      this._resetStateLS();
       return;
     }
-    const now = new Date().toISOString();
-    let totalPaused = this.state.totalPaused || 0;
-    if (this.state.status === 'paused') {
-      totalPaused += Math.max(0, new Date() - new Date(this.state.pauseStart));
-    }
-    const totalMs = Math.max(0, new Date() - new Date(this.state.startTime) - totalPaused);
-    const totalMinutes = Math.round(totalMs / 60000);
-    try {
-      await DB.insert('zeiterfassung', {
-        user_id: Auth.userId(),
-        datum: this.state.date || today(),
-        start_zeit: this.state.startTime,
-        pausen: (this.state.log || []).filter(l => l.type === 'pause' || l.type === 'weiter'),
-        end_zeit: now,
-        gesamt_minuten: totalMinutes,
-        projekt_id: this.state.projekt_id || null,
-        projekt_label: this.state.projekt_label || null,
-        sync_status: 'pending',
-      });
-    } catch (e) { console.warn('Auto-Stop beim Logout:', e); }
-    this._resetState();
+    /* Alle Werte synchron auslesen bevor state genullt wird */
+    const now      = new Date().toISOString();
+    const userId   = Auth.userId();
+    const datum    = this.state.date || today();
+    const start    = this.state.startTime;
+    let paused     = this.state.totalPaused || 0;
+    if (this.state.status === 'paused') paused += Math.max(0, new Date() - new Date(this.state.pauseStart));
+    const mins     = Math.round(Math.max(0, new Date() - new Date(start) - paused) / 60000);
+    const pausen   = (this.state.log || []).filter(l => l.type === 'pause' || l.type === 'weiter');
+    const pid      = this.state.projekt_id || null;
+    const plabel   = this.state.projekt_label || null;
+
+    /* Zustand sofort zurücksetzen — Logout wartet nicht auf DB */
+    this._resetStateLS(userId);
+
+    /* DB-Eintrag im Hintergrund speichern (fire-and-forget) */
+    DB.insert('zeiterfassung', {
+      user_id: userId, datum, start_zeit: start, pausen,
+      end_zeit: now, gesamt_minuten: mins,
+      projekt_id: pid, projekt_label: plabel, sync_status: 'pending',
+    }).catch(() => {});
   },
 
-  _resetState() {
-    const fresh = { status: 'idle', startTime: null, pauseStart: null, totalPaused: 0,
-      log: [], date: today(), projekt_id: null, projekt_label: null };
+  _resetStateLS(userId) {
+    const uid   = userId || Auth.userId();
+    const fresh = { status: 'idle', startTime: null, pauseStart: null,
+      totalPaused: 0, log: [], date: today(), projekt_id: null, projekt_label: null };
     this.state = fresh;
-    if (Auth.userId()) localStorage.setItem('mmg_zeit_state_' + Auth.userId(), JSON.stringify(fresh));
+    try { if (uid) localStorage.setItem('mmg_zeit_state_' + uid, JSON.stringify(fresh)); } catch {}
   },
 
   exportMonthPdf() {
