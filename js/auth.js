@@ -177,11 +177,19 @@ function initProfilePanel() {
 
   logoutBtn.addEventListener('click', () => {
     if (typeof ZeiterfassungModule !== 'undefined') {
-      clearInterval(ZeiterfassungModule.timerInterval);
-      clearInterval(ZeiterfassungModule._teamRefreshInterval);
-      ZeiterfassungModule.timerInterval = null;
-      ZeiterfassungModule.state = null;
-      ZeiterfassungModule.userTab = null;
+      const zs = ZeiterfassungModule;
+      if (zs.state && zs.state.status === 'working') {
+        const now = new Date().toISOString();
+        zs.state.status = 'paused';
+        zs.state.pauseStart = now;
+        if (zs.state.log) zs.state.log.push({ type: 'pause', time: now });
+        zs.saveState();
+      }
+      clearInterval(zs.timerInterval);
+      clearInterval(zs._teamRefreshInterval);
+      zs.timerInterval = null;
+      zs.state = null;
+      zs.userTab = null;
     }
     Auth.logout();
     close();
