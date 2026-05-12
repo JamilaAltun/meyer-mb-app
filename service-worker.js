@@ -1,102 +1,36 @@
-const CACHE_NAME = 'meyer-metallbau-v9';
+const CACHE_NAME = 'meyer-metallbau-v10';
 
-const STATIC_ASSETS = [
-  './',
-  './index.html',
-  './manifest.json',
-  './css/style.css',
-  './css/components.css',
-  './css/responsive.css',
-  './assets/logo-placeholder.svg',
-  './js/config.js',
-  './js/storage.js',
-  './js/auth.js',
-  './js/notifications.js',
-  './js/pdf.js',
-  './js/signature.js',
-  './js/zeiterfassung.js',
-  './js/dashboard.js',
-  './js/kunden.js',
-  './js/anfragen.js',
-  './js/auftraege.js',
-  './js/nachkalkulation.js',
-  './js/rechnungen.js',
-  './js/aufgaben.js',
-  './js/kalender.js',
-  './js/chat.js',
-  './js/urlaub.js',
-  './js/tickets.js',
-  './js/einstellungen.js',
-  './js/team.js',
-  './js/backup.js',
-  './js/app.js',
-  'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',
-  'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js',
-];
-
-self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(STATIC_ASSETS)).then(() => self.skipWaiting())
-  );
-});
+self.addEventListener('install', () => self.skipWaiting());
 
 self.addEventListener('activate', event => {
   event.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
-    ).then(() => self.clients.claim())
+    caches.keys()
+      .then(keys => Promise.all(keys.map(k => caches.delete(k))))
+      .then(() => self.clients.claim())
+      .then(() => self.clients.matchAll({ type: 'window' }))
+      .then(clients => clients.forEach(c => c.postMessage({ type: 'SW_UPDATED' })))
   );
 });
 
 self.addEventListener('fetch', event => {
-  const { request } = event;
-  if (request.method !== 'GET') return;
+  if (event.request.method !== 'GET') return;
+  const url = new URL(event.request.url);
 
-  const url = new URL(request.url);
+  /* Supabase immer direkt */
+  if (url.hostname.includes('supabase')) return;
 
-  /* Supabase API-Calls: immer Network-First */
-  if (url.hostname.includes('supabase')) {
-    event.respondWith(fetch(request).catch(() => caches.match(request)));
-    return;
-  }
-
-  /* HTML, JS, CSS: immer Network-First — Änderungen sofort sichtbar */
-  const isAppFile = url.pathname.match(/\.(html|js|css)$/) || url.pathname === '/' || url.pathname.endsWith('/');
-  if (isAppFile) {
-    event.respondWith(
-      fetch(request).then(response => {
-        if (response && response.status === 200) {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(request, clone));
-        }
-        return response;
-      }).catch(() => caches.match(request))
-    );
-    return;
-  }
-
-  /* Bilder und externe Libs: Cache-First (ändert sich selten) */
+  /* Alles andere: Network-First, kein Cache */
   event.respondWith(
-    caches.match(request).then(cached => {
-      if (cached) return cached;
-      return fetch(request).then(response => {
-        if (!response || response.status !== 200 || response.type === 'opaque') return response;
-        const clone = response.clone();
-        caches.open(CACHE_NAME).then(cache => cache.put(request, clone));
-        return response;
-      });
-    })
+    fetch(event.request).catch(() => caches.match(event.request))
   );
 });
 
-/* Hintergrund-Sync (falls vom Browser unterstützt) */
 self.addEventListener('sync', event => {
   if (event.tag === 'mmg-sync') {
     event.waitUntil(
-      self.clients.matchAll().then(clients => {
-        clients.forEach(client => client.postMessage({ type: 'SYNC_REQUESTED' }));
-      })
+      self.clients.matchAll().then(clients =>
+        clients.forEach(c => c.postMessage({ type: 'SYNC_REQUESTED' }))
+      )
     );
   }
 });

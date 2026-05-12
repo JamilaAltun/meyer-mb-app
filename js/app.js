@@ -269,8 +269,9 @@ function setBadge(module, count) {
 /* ── APP STARTEN ── */
 /* Service Worker registrieren */
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./service-worker.js').catch(() => {});
+  navigator.serviceWorker.register('./service-worker.js', { updateViaCache: 'none' }).catch(() => {});
   navigator.serviceWorker.addEventListener('message', e => {
+    if (e.data?.type === 'SW_UPDATED') window.location.reload();
     if (e.data?.type === 'SYNC_REQUESTED') syncPendingData?.();
   });
 }
