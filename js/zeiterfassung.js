@@ -10,8 +10,7 @@ const ZeiterfassungModule = {
   /* ── Widget in Sidebar initialisieren ── */
   initWidget() {
     this.loadState();
-    /* Laufenden Timer beim Seitenstart pausieren — Zeit soll nicht unkontrolliert
-       weiterlaufen wenn der Browser geschlossen oder die Seite neu geladen wurde */
+    /* Browser-Neustart / Refresh ohne Logout: laufenden Timer pausieren */
     if (this.state.status === 'working') {
       const now = new Date().toISOString();
       this.state.status = 'paused';
@@ -20,10 +19,10 @@ const ZeiterfassungModule = {
       this.saveState();
     }
     this.updateWidget();
-
-    document.getElementById('sidebar-start-btn').addEventListener('click', () => this.start());
-    document.getElementById('sidebar-pause-btn').addEventListener('click', () => this.pause());
-    document.getElementById('sidebar-stop-btn').addEventListener('click',  () => this.stop());
+    /* .onclick statt addEventListener — kein Stapeln bei mehrfachem initWidget-Aufruf */
+    document.getElementById('sidebar-start-btn').onclick = () => this.start();
+    document.getElementById('sidebar-pause-btn').onclick = () => this.pause();
+    document.getElementById('sidebar-stop-btn').onclick  = () => this.stop();
   },
 
   /* ── Zustand laden ── */
@@ -806,6 +805,42 @@ const ZeiterfassungModule = {
         }).join('')}
       </div>
     `);
+  },
+
+  /* ── Beim Logout: Timer stoppen & Eintrag speichern ── */
+  async _autoStopOnLogout() {
+    if (!this.state || this.state.status === 'idle' || this.state.status === 'gone') {
+      this._resetState();
+      return;
+    }
+    const now = new Date().toISOString();
+    let totalPaused = this.state.totalPaused || 0;
+    if (this.state.status === 'paused') {
+      totalPaused += Math.max(0, new Date() - new Date(this.state.pauseStart));
+    }
+    const totalMs = Math.max(0, new Date() - new Date(this.state.startTime) - totalPaused);
+    const totalMinutes = Math.round(totalMs / 60000);
+    try {
+      await DB.insert('zeiterfassung', {
+        user_id: Auth.userId(),
+        datum: this.state.date || today(),
+        start_zeit: this.state.startTime,
+        pausen: (this.state.log || []).filter(l => l.type === 'pause' || l.type === 'weiter'),
+        end_zeit: now,
+        gesamt_minuten: totalMinutes,
+        projekt_id: this.state.projekt_id || null,
+        projekt_label: this.state.projekt_label || null,
+        sync_status: 'pending',
+      });
+    } catch (e) { console.warn('Auto-Stop beim Logout:', e); }
+    this._resetState();
+  },
+
+  _resetState() {
+    const fresh = { status: 'idle', startTime: null, pauseStart: null, totalPaused: 0,
+      log: [], date: today(), projekt_id: null, projekt_label: null };
+    this.state = fresh;
+    if (Auth.userId()) localStorage.setItem('mmg_zeit_state_' + Auth.userId(), JSON.stringify(fresh));
   },
 
   exportMonthPdf() {

@@ -3,6 +3,7 @@
 ═══════════════════════════════════════════════════════ */
 
 let currentModule = null;
+let appInitialized = false;
 
 /* ── Globale Hilfsfunktionen ── */
 function showToast(message, type = 'info', duration = 3500) {
@@ -112,66 +113,57 @@ async function initApp() {
   const u = Auth.currentUser;
   if (!u) return;
 
-  /* Einstellungen aus Supabase laden (überschreibt alten Cache) */
+  /* Einstellungen aus Supabase laden */
   await Settings.load();
 
-  /* Benutzeranzeige */
+  /* Benutzeranzeige & Logo */
   updateUserDisplay();
-
-  /* Logo aus Einstellungen */
   const settings = Settings.get();
-  if (settings.logo_url) {
-    document.getElementById('sidebar-logo-img').src = settings.logo_url;
-  }
+  if (settings.logo_url) document.getElementById('sidebar-logo-img').src = settings.logo_url;
 
   /* Berechtigungen anwenden */
   applyPermissions();
 
-  /* Navigation */
-  document.querySelectorAll('.nav-item').forEach(item => {
-    item.addEventListener('click', e => {
-      e.preventDefault();
-      navigateTo(item.getAttribute('data-module'));
+  /* Einmalige Initialisierung — Event-Listener nur beim allerersten Login setzen */
+  if (!appInitialized) {
+    appInitialized = true;
+
+    document.querySelectorAll('.nav-item').forEach(item => {
+      item.addEventListener('click', e => {
+        e.preventDefault();
+        navigateTo(item.getAttribute('data-module'));
+      });
     });
-  });
 
-  /* Profil-Panel */
-  initProfilePanel();
+    initProfilePanel();
 
-  /* Zeiterfassung-Widget */
+    document.getElementById('hamburger-btn').addEventListener('click', openSidebar);
+    document.getElementById('sidebar-close-btn').addEventListener('click', closeSidebar);
+    document.getElementById('sidebar-overlay').addEventListener('click', closeSidebar);
+    document.getElementById('modal-close-btn').addEventListener('click', closeModal);
+    document.getElementById('modal-overlay').addEventListener('click', e => {
+      if (e.target === document.getElementById('modal-overlay')) closeModal();
+    });
+
+    initGlobalSearch();
+
+    const syncDiv = document.createElement('div');
+    syncDiv.className = 'sync-indicator';
+    syncDiv.innerHTML = '<div class="sync-dot online"></div><span class="sync-label">Online</span>';
+    document.body.appendChild(syncDiv);
+
+    BackupModule.startAuto();
+  }
+
+  /* Immer bei jedem Login: Timer-Zustand für aktuellen Nutzer neu laden */
   ZeiterfassungModule.initWidget();
-
-  /* Sidebar Mobile */
-  document.getElementById('hamburger-btn').addEventListener('click', openSidebar);
-  document.getElementById('sidebar-close-btn').addEventListener('click', closeSidebar);
-  document.getElementById('sidebar-overlay').addEventListener('click', closeSidebar);
-
-  /* Modal schließen */
-  document.getElementById('modal-close-btn').addEventListener('click', closeModal);
-  document.getElementById('modal-overlay').addEventListener('click', e => {
-    if (e.target === document.getElementById('modal-overlay')) closeModal();
-  });
-
-  /* Globale Suche */
-  initGlobalSearch();
 
   /* Dark Mode wiederherstellen */
   const savedTheme = localStorage.getItem('mmg_theme');
   if (savedTheme) document.documentElement.setAttribute('data-theme', savedTheme);
 
-  /* Sync-Indikator */
-  const syncDiv = document.createElement('div');
-  syncDiv.className = 'sync-indicator';
-  syncDiv.innerHTML = '<div class="sync-dot online"></div><span class="sync-label">Online</span>';
-  document.body.appendChild(syncDiv);
-
-  /* Notifications prüfen */
+  /* Notifications & Badges */
   NotificationsModule.checkAndShow();
-
-  /* Automatisches Backup starten */
-  BackupModule.startAuto();
-
-  /* Badge-Zähler */
   updateBadges();
 
   /* Start-Modul */
