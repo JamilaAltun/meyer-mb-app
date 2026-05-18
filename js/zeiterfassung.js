@@ -435,20 +435,33 @@ const ZeiterfassungModule = {
   async showTeamMemberDetail(userId) {
     clearInterval(this._teamRefreshInterval);
     this._teamMemberUserId = userId;
-    this._teamMemberMonth = this._teamMemberMonth || new Date().toISOString().slice(0, 7);
+    this._teamMemberMonth = new Date().toISOString().slice(0, 7);
+
+    document.getElementById('zeit-user-tab').innerHTML =
+      '<div style="padding:2rem;text-align:center;color:var(--text-muted)">Lade...</div>';
 
     let users = [], allEntries = [];
     try {
       [users, allEntries] = await Promise.all([
         DB.getAll('users'),
-        DB.getAll('zeiterfassung', { user_id: userId }),
+        DB.getAll('zeiterfassung'),
       ]);
-    } catch {}
+    } catch(e) {
+      document.getElementById('zeit-user-tab').innerHTML =
+        `<div style="padding:2rem;color:var(--red)">Fehler: ${e.message}</div>`;
+      return;
+    }
 
-    this._teamMemberEntries = allEntries;
+    /* Client-seitig filtern — umgeht RLS-Probleme */
+    this._teamMemberEntries = allEntries.filter(e => e.user_id === userId);
     this._teamMemberUser = users.find(u => u.id === userId) || { name: '—', position: '—' };
 
-    this._renderTeamMemberDetail();
+    try {
+      this._renderTeamMemberDetail();
+    } catch(e) {
+      document.getElementById('zeit-user-tab').innerHTML =
+        `<div style="padding:2rem;color:var(--red)">Render-Fehler: ${e.message}</div>`;
+    }
   },
 
   _renderTeamMemberDetail() {
@@ -638,9 +651,9 @@ const ZeiterfassungModule = {
         await DB.delete('zeiterfassung', id);
         closeModal();
         showToast('Eintrag gelöscht', 'success');
-        this._teamMemberEntries = await DB.getAll('zeiterfassung', { user_id: this._teamMemberUserId });
-        const users = await DB.getAll('users');
-        this._teamMemberUser = users.find(u => u.id === this._teamMemberUserId) || { name: '—', position: '—' };
+        const [allE, usersD] = await Promise.all([DB.getAll('zeiterfassung'), DB.getAll('users')]);
+        this._teamMemberEntries = allE.filter(e => e.user_id === this._teamMemberUserId);
+        this._teamMemberUser = usersD.find(u => u.id === this._teamMemberUserId) || { name: '—', position: '—' };
         this._renderTeamMemberDetail();
       } catch (e) {
         closeModal();
@@ -718,9 +731,9 @@ const ZeiterfassungModule = {
         notiz: notiz || null, sync_status: 'pending',
       });
       showToast('Eintrag hinzugefügt', 'success');
-      this._teamMemberEntries = await DB.getAll('zeiterfassung', { user_id: userId });
-      const usersR = await DB.getAll('users');
-      this._teamMemberUser = usersR.find(u => u.id === userId) || { name: '—', position: '—' };
+      const [allEA, usersA] = await Promise.all([DB.getAll('zeiterfassung'), DB.getAll('users')]);
+      this._teamMemberEntries = allEA.filter(e => e.user_id === userId);
+      this._teamMemberUser = usersA.find(u => u.id === userId) || { name: '—', position: '—' };
       this._renderTeamMemberDetail();
     } catch (e) { showToast('Fehler: ' + e.message, 'error'); }
   },
@@ -1285,8 +1298,8 @@ const ZeiterfassungModule = {
 
       if (this._editContext === 'team' && this._teamMemberUserId) {
         this._editContext = null;
-        this._teamMemberEntries = await DB.getAll('zeiterfassung', { user_id: this._teamMemberUserId });
-        const usersE = await DB.getAll('users');
+        const [allEE, usersE] = await Promise.all([DB.getAll('zeiterfassung'), DB.getAll('users')]);
+        this._teamMemberEntries = allEE.filter(e => e.user_id === this._teamMemberUserId);
         this._teamMemberUser = usersE.find(u => u.id === this._teamMemberUserId) || { name: '—', position: '—' };
         this._renderTeamMemberDetail();
       } else {
