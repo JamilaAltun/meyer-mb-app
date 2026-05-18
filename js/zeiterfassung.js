@@ -1010,6 +1010,15 @@ const ZeiterfassungModule = {
         closeModal();
         showToast('Eintrag gelöscht', 'success');
         this._allEntries = await DB.getAll('zeiterfassung', { user_id: Auth.userId() });
+
+        /* Wenn der gelöschte Eintrag von heute war und keine weiteren Einträge
+           für heute existieren: State auf idle zurücksetzen → Timer zeigt 0 */
+        const nochHeuteEintraege = this._allEntries.filter(e => e.datum === today());
+        if (entry.datum === today() && nochHeuteEintraege.length === 0) {
+          this._resetStateLS();
+          this.updateWidget();
+        }
+
         this.renderUserTab();
       } catch (e) {
         closeModal();
