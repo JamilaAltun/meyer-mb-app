@@ -2,144 +2,142 @@
    MEYER METALLBAU — Responsive (Tablet & Mobile)
 ═══════════════════════════════════════════════════════ */
 
-/* ── Tablet (bis 1024px) ── */
+/* ── Großes Tablet (bis 1024px) ── */
 @media (max-width: 1024px) {
   :root { --sidebar-width: 220px; }
+  .main-content { padding: 1.5rem; }
   .form-row-3 { grid-template-columns: 1fr 1fr; }
   .kpi-grid { grid-template-columns: repeat(2, 1fr); }
   .chat-list { width: 220px; }
   .dash-side-grid { grid-template-columns: 1fr; }
-  .main-content { padding: 1.5rem; }
 }
 
-/* ── Mobil & Tablet (bis 768px) ── */
+/* ── Mobil (bis 768px) ── */
 @media (max-width: 768px) {
-  /* Dashboard Grids: 1 Spalte */
-  .dash-grid, .dash-chart-grid { grid-template-columns: 1fr; }
 
-  /* iOS: verhindert Auto-Zoom bei Eingabefeldern (< 16px) */
-  .form-input, .form-select, .form-textarea { font-size: 16px; }
-  /* Sidebar als Drawer */
-  .sidebar {
-    transform: translateX(-100%);
-    z-index: 300;
-    width: 260px;
-  }
-  .sidebar.open {
-    transform: translateX(0);
-    box-shadow: 4px 0 20px rgba(0,0,0,0.3);
-  }
+  /* ── Sidebar als Drawer ── */
+  .sidebar { transform: translateX(-100%); z-index: 300; width: 260px; }
+  .sidebar.open { transform: translateX(0); box-shadow: 4px 0 20px rgba(0,0,0,.3); }
   .sidebar-close-btn { display: flex; }
-
-  /* Main nimmt volle Breite */
-  .main-wrapper { margin-left: 0; }
-
-  /* Topbar sichtbar */
-  .topbar { display: flex; }
-
-  /* Content Padding reduzieren */
-  .main-content { padding: 1rem; }
-
-  /* Sidebar Overlay */
   .sidebar-overlay.open { display: block; }
 
-  /* KPIs: 2 Spalten */
+  /* ── Haupt-Layout ── */
+  .main-wrapper { margin-left: 0; }
+  .topbar { display: flex; }
+  .main-content { padding: 1rem; overflow-x: hidden; }
+
+  /* ── KPI Kacheln ── */
   .kpi-grid { grid-template-columns: repeat(2, 1fr); }
   .kpi-value { font-size: 1.5rem; }
+  .kpi-value.kpi-currency { font-size: 1.15rem; }
 
-  /* Tabellen: horizontal scrollen */
+  /* ── Tabellen ── */
   .table-wrapper { overflow-x: auto; }
-  table { min-width: 600px; }
+  .table-wrapper table { min-width: 600px; }
 
-  /* Modul Header */
-  .module-header { flex-direction: column; align-items: flex-start; }
-  .module-actions { width: 100%; justify-content: flex-start; }
+  /* ── Modul Header ── */
+  .module-header { flex-direction: column; align-items: flex-start; gap: .75rem; }
+  .module-actions { width: 100%; justify-content: flex-start; flex-wrap: wrap; }
 
-  /* Dashboard */
+  /* ── Dashboard Grids ── */
+  .dash-grid, .dash-chart-grid { grid-template-columns: 1fr; }
   .dash-side-grid { grid-template-columns: 1fr; }
+
+  /* ── Quick Actions ── */
   .quick-actions { gap: .4rem; }
   .quick-action-btn { font-size: .78rem; padding: .45rem .75rem; }
 
-  /* Kanban */
+  /* ── Kanban ── */
   .kanban-board { min-height: 400px; }
   .kanban-col { width: 260px; }
 
-  /* Kunden Cards */
+  /* ── Kunden ── */
   .customer-grid { grid-template-columns: 1fr; }
 
-  /* Form rows: 1 Spalte */
+  /* ── Formulare ── */
   .form-row, .form-row-3 { grid-template-columns: 1fr; }
+  .form-input, .form-select, .form-textarea { font-size: 16px; } /* iOS Zoom-Fix */
 
-  /* Modal: volle Breite */
+  /* ── Modal ── */
   .modal-box { max-height: 95vh; border-radius: var(--radius) var(--radius) 0 0; }
   .modal-overlay { align-items: flex-end; padding: 0; }
 
-  /* Profil Panel */
+  /* ── Profil Panel ── */
   .profile-panel { width: 100%; }
 
-  /* Workflow Bar */
-  .workflow-bar { gap: .3rem; padding: .5rem .75rem; }
+  /* ── Workflow Bar ── */
+  .workflow-bar { gap: .3rem; padding: .5rem .75rem; overflow-x: auto; }
   .wf-step { font-size: .72rem; padding: .3rem .5rem; }
 
-  /* Chat Layout */
+  /* ── Chat ── */
   .chat-layout { flex-direction: column; height: auto; }
   .chat-list { width: 100%; border-right: none; border-bottom: 1px solid var(--card-border); max-height: 160px; }
   .chat-window { min-height: 300px; }
   .chat-messages { max-height: 250px; }
 
-  /* Kalender */
+  /* ── Kalender ── */
   .calendar-grid { font-size: .7rem; }
   .cal-day { min-height: 60px; }
   .cal-event { display: none; }
   .cal-day-num { font-size: .72rem; }
 
-  /* Zeiterfassung */
+  /* ── Zeiterfassung ── */
   .zeit-clock-display { font-size: 3rem; }
   .zeit-big-btn { min-width: 100px; padding: .75rem 1.25rem; font-size: .9rem; }
+  .zeit-stat-row { grid-template-columns: repeat(2, 1fr); }
 
-  /* Detail Grid */
+  /* ── Detail Grid ── */
   .detail-grid { grid-template-columns: 1fr 1fr; }
 
-  /* Sync Indicator */
+  /* ── Sync & Toast ── */
   .sync-indicator { left: 1rem; bottom: .75rem; }
-
-  /* Toast */
   .toast-container { left: 1rem; right: 1rem; bottom: 1rem; }
   .toast { min-width: unset; }
 
-  /* Tabs: scrollen */
-  .tabs { overflow-x: auto; }
+  /* ── Tabs ── */
+  .tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .tab-btn { padding: .55rem .85rem; font-size: .82rem; }
 
-  /* Positions Tabelle */
+  /* ── Positions Tabelle ── */
   .positions-table-wrapper { overflow-x: auto; }
   .positions-table { min-width: 500px; }
 }
 
 /* ── Kleines Mobil (bis 480px) ── */
 @media (max-width: 480px) {
-  .kpi-grid { grid-template-columns: 1fr 1fr; }
-  .kpi-value { font-size: 1.3rem; }
-  .kpi-card { padding: 1rem .75rem; }
   .main-content { padding: .75rem; }
 
+  .kpi-grid { grid-template-columns: 1fr 1fr; }
+  .kpi-value { font-size: 1.3rem; }
+  .kpi-card { padding: .875rem .75rem; }
+
+  /* Quick Actions: 2 Spalten */
+  .quick-actions { display: grid; grid-template-columns: 1fr 1fr; }
+  .quick-action-btn { width: 100%; justify-content: center; }
+
+  /* Module-Aktionen: volle Breite */
+  .module-title { font-size: 1.1rem; }
+
+  /* Login */
   .login-card { padding: 2rem 1.25rem; }
   .login-title { font-size: 1.2rem; }
 
+  /* Zeiterfassung */
   .zeit-clock-display { font-size: 2.5rem; }
   .zeit-clock-buttons { gap: .6rem; }
   .zeit-big-btn { min-width: 80px; padding: .65rem 1rem; font-size: .85rem; }
+  .zeit-stat-row { grid-template-columns: 1fr 1fr; }
 
+  /* Detail / Foto Grid */
   .detail-grid { grid-template-columns: 1fr; }
-
   .foto-grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); }
 
-  .module-title { font-size: 1.1rem; }
-
-  .sidebar-logo-text { font-size: .82rem; }
-
+  /* Tabellen Toolbar */
   .table-toolbar { flex-direction: column; align-items: flex-start; }
   .table-search { max-width: 100%; width: 100%; }
+
+  /* Sidebar Logo */
+  .sidebar-logo-text { font-size: .82rem; }
 }
 
 /* ── Landscape Mobil ── */
@@ -148,7 +146,7 @@
   .zeit-clock-display { font-size: 2.5rem; }
 }
 
-/* ── Print Styles ── */
+/* ── Print ── */
 @media print {
   .sidebar, .topbar, .toast-container, .sync-indicator,
   .btn, .table-toolbar, .modal-overlay { display: none !important; }
@@ -158,12 +156,10 @@
   .card, .table-wrapper { box-shadow: none; border: 1px solid #ddd; }
 }
 
-/* ── iPad Pro & größere Tablets ── */
+/* ── iPad Pro / Tablet Querformat ── */
 @media (min-width: 769px) and (max-width: 1024px) {
   .sidebar-logo-text { font-size: .82rem; }
   .nav-label { font-size: .82rem; }
-
-  /* Sidebar immer sichtbar auf Tablets (Querformat) */
   .sidebar { transform: none; }
   .main-wrapper { margin-left: var(--sidebar-width); }
   .topbar { display: none; }

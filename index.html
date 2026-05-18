@@ -5,7 +5,7 @@
   <script>
     /* Cache-Buster: bei neuer Version alle SW und Caches löschen und neu laden */
     (function() {
-      var V = '11';
+      var V = '13';
       if (localStorage.getItem('mmg_v') !== V) {
         localStorage.setItem('mmg_v', V);
         if ('serviceWorker' in navigator) {
@@ -36,9 +36,11 @@
   <link rel="stylesheet" href="css/style.css" />
   <link rel="stylesheet" href="css/components.css" />
   <link rel="stylesheet" href="css/responsive.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 </head>
 <body>
 
@@ -114,6 +116,10 @@
       <a href="#" class="nav-item" data-module="auftraege" data-perm="auftraege">
         <span class="nav-icon"><i class="fa-solid fa-clipboard-list"></i></span>
         <span class="nav-label">Aufträge</span>
+      </a>
+      <a href="#" class="nav-item" data-module="karte">
+        <span class="nav-icon"><i class="fa-solid fa-map-location-dot"></i></span>
+        <span class="nav-label">Auftragsmap</span>
       </a>
       <a href="#" class="nav-item" data-module="nachkalkulation" data-perm="nachkalkulation">
         <span class="nav-icon"><i class="fa-solid fa-chart-bar"></i></span>
@@ -270,15 +276,16 @@
 <script src="js/notifications.js?v=9"></script>
 <script src="js/pdf.js?v=9"></script>
 <script src="js/signature.js?v=9"></script>
-<script src="js/zeiterfassung.js?v=9"></script>
-<script src="js/dashboard.js?v=9"></script>
+<script src="js/zeiterfassung.js?v=13"></script>
+<script src="js/dashboard.js?v=10"></script>
 <script src="js/kunden.js?v=9"></script>
 <script src="js/anfragen.js?v=9"></script>
 <script src="js/auftraege.js?v=9"></script>
+<script src="js/karte.js?v=1"></script>
 <script src="js/nachkalkulation.js?v=9"></script>
 <script src="js/rechnungen.js?v=9"></script>
 <script src="js/aufgaben.js?v=9"></script>
-<script src="js/kalender.js?v=9"></script>
+<script src="js/kalender.js?v=10"></script>
 <script src="js/chat.js?v=9"></script>
 <script src="js/urlaub.js?v=9"></script>
 <script src="js/tickets.js?v=9"></script>

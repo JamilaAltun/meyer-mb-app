@@ -12,7 +12,7 @@ const BackupModule = {
   PREFIX: 'bk_',
   TABLES: [
     'users','kunden','auftraege','angebote','rechnungen',
-    'aufgaben','chat_nachrichten','urlaub','tickets','zeiterfassung'
+    'aufgaben','chat_nachrichten','urlaub','tickets','zeiterfassung','kalender_events'
   ],
 
   /* ── Backup-Index (Metadaten-Liste) lesen ── */

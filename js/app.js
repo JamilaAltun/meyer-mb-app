@@ -59,6 +59,7 @@ const modules = {
   kunden:          () => KundenModule.render(),
   anfragen:        () => AnfragenModule.render(),
   auftraege:       () => AuftraegeModule.render(),
+  karte:           () => KarteModule.render(),
   nachkalkulation: () => NachkalkulationModule.render(),
   rechnungen:      () => RechnungenModule.render(),
   aufgaben:        () => AufgabenModule.render(),
@@ -72,7 +73,7 @@ const modules = {
 };
 
 async function navigateTo(moduleName) {
-  if (!Auth.can(moduleName) && moduleName !== 'dashboard' && moduleName !== 'zeiterfassung' && moduleName !== 'team') {
+  if (!Auth.can(moduleName) && moduleName !== 'dashboard' && moduleName !== 'zeiterfassung' && moduleName !== 'team' && moduleName !== 'karte') {
     showToast('Kein Zugriff auf diesen Bereich', 'error');
     return;
   }
@@ -92,6 +93,7 @@ async function navigateTo(moduleName) {
     aufgaben: 'Aufgaben', kalender: 'Kalender',
     chat: 'Chat', urlaub: 'Urlaub',
     tickets: 'Tickets', einstellungen: 'Einstellungen', team: 'Team',
+    karte: 'Auftragsmap',
   };
   document.getElementById('topbar-title').textContent = labels[moduleName] || moduleName;
 

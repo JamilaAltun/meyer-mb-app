@@ -177,21 +177,23 @@ const DashboardModule = {
               <button class="btn btn-ghost btn-sm" onclick="navigateTo('auftraege')">Alle anzeigen →</button>
             </div>
             ${laufendeAuftraege.length ? `
-              <table>
-                <thead><tr><th>Nr.</th><th>Bezeichnung</th><th>Kunde</th><th>Status</th><th>Wert</th></tr></thead>
-                <tbody>
-                  ${laufendeAuftraege.slice(0,6).map(a => {
-                    const k = kundenMap[a.kunde_id];
-                    return `<tr onclick="navigateTo('auftraege')">
-                      <td><strong>${a.nummer || '—'}</strong></td>
-                      <td>${a.bezeichnung || '—'}</td>
-                      <td>${k ? (k.firma || k.name) : '—'}</td>
-                      <td>${getStatusBadge(a.workflow_status)}</td>
-                      <td>${a.auftragswert ? formatCurrency(a.auftragswert) : '—'}</td>
-                    </tr>`;
-                  }).join('')}
-                </tbody>
-              </table>` : `<div class="table-empty"><div class="table-empty-icon"><i class="fa-regular fa-clipboard"></i></div><div class="table-empty-text">Keine laufenden Aufträge</div></div>`}
+              <div style="overflow-x:auto">
+                <table style="min-width:520px">
+                  <thead><tr><th>Nr.</th><th>Bezeichnung</th><th>Kunde</th><th>Status</th><th>Wert</th></tr></thead>
+                  <tbody>
+                    ${laufendeAuftraege.slice(0,6).map(a => {
+                      const k = kundenMap[a.kunde_id];
+                      return `<tr onclick="navigateTo('auftraege')">
+                        <td><strong>${a.nummer || '—'}</strong></td>
+                        <td>${a.bezeichnung || '—'}</td>
+                        <td>${k ? (k.firma || k.name) : '—'}</td>
+                        <td>${getStatusBadge(a.workflow_status)}</td>
+                        <td>${a.auftragswert ? formatCurrency(a.auftragswert) : '—'}</td>
+                      </tr>`;
+                    }).join('')}
+                  </tbody>
+                </table>
+              </div>` : `<div class="table-empty"><div class="table-empty-icon"><i class="fa-regular fa-clipboard"></i></div><div class="table-empty-text">Keine laufenden Aufträge</div></div>`}
           </div>
         </div>
 
