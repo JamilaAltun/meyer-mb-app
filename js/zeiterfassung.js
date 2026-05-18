@@ -383,22 +383,17 @@ const ZeiterfassungModule = {
         zeitInfo    = '—';
       }
 
+      const cardCls = active ? 'active' : done ? 'done' : 'absent';
       return `
-        <div style="background:var(--card);border-radius:14px;border:2px solid ${statusColor};padding:1.25rem 1rem;display:flex;flex-direction:column;align-items:center;gap:.6rem;text-align:center;box-shadow:var(--shadow)">
-          <!-- Avatar -->
-          <div style="width:56px;height:56px;border-radius:50%;background:${statusColor};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.4rem">${u.name.charAt(0).toUpperCase()}</div>
-          <!-- Name & Position -->
-          <div>
-            <div style="font-weight:700;font-size:.95rem">${u.name}</div>
-            <div style="font-size:.75rem;color:var(--text-muted);margin-top:.1rem">${u.position || '—'}</div>
-          </div>
-          <!-- Status-Badge -->
-          <div style="display:inline-flex;align-items:center;gap:.35rem;background:${statusColor}22;color:${statusColor};font-weight:700;font-size:.78rem;padding:.25rem .65rem;border-radius:99px">
-            <span style="width:7px;height:7px;border-radius:50%;background:${statusColor};display:inline-block${active ? ';animation:pulse 1.5s infinite' : ''}"></span>
+        <div class="zeit-team-card ${cardCls}">
+          <div class="zeit-team-avatar ${cardCls}">${u.name.charAt(0).toUpperCase()}</div>
+          <div class="zeit-team-name">${u.name}</div>
+          <div class="zeit-team-pos">${u.position || '—'}</div>
+          <div class="zeit-team-badge ${cardCls}">
+            <span class="zeit-team-badge-dot"></span>
             ${statusText}
           </div>
-          <!-- Zeit-Info -->
-          <div style="font-size:.78rem;color:var(--text-muted);line-height:1.5">${zeitInfo}</div>
+          <div class="zeit-team-info">${zeitInfo}</div>
         </div>`;
     }).join('');
 
@@ -407,25 +402,25 @@ const ZeiterfassungModule = {
     const fehlt  = users.length - aktiv - fertig;
 
     document.getElementById('zeit-user-tab').innerHTML = `
-      <!-- Heute-Status Übersicht -->
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem;margin-bottom:1.25rem">
-        <div class="card" style="text-align:center;padding:1rem .5rem;border-top:3px solid var(--green)">
-          <div style="font-size:1.8rem;font-weight:800;color:var(--green)">${aktiv}</div>
-          <div style="font-size:.75rem;color:var(--text-muted);margin-top:.2rem">Eingestempelt</div>
+        <div class="zeit-stat-card" style="border-top:3px solid var(--green)">
+          <div class="zeit-stat-value positive">${aktiv}</div>
+          <div class="zeit-stat-label">Eingestempelt</div>
         </div>
-        <div class="card" style="text-align:center;padding:1rem .5rem;border-top:3px solid var(--red)">
-          <div style="font-size:1.8rem;font-weight:800;color:var(--red)">${fehlt}</div>
-          <div style="font-size:.75rem;color:var(--text-muted);margin-top:.2rem">Fehlen noch</div>
+        <div class="zeit-stat-card" style="border-top:3px solid var(--red)">
+          <div class="zeit-stat-value" style="color:var(--red)">${fehlt}</div>
+          <div class="zeit-stat-label">Fehlen noch</div>
         </div>
-        <div class="card" style="text-align:center;padding:1rem .5rem;border-top:3px solid var(--navy)">
-          <div style="font-size:1.8rem;font-weight:800;color:var(--navy)">${fertig}</div>
-          <div style="font-size:.75rem;color:var(--text-muted);margin-top:.2rem">Feierabend</div>
+        <div class="zeit-stat-card" style="border-top:3px solid var(--navy)">
+          <div class="zeit-stat-value">${fertig}</div>
+          <div class="zeit-stat-label">Feierabend</div>
         </div>
       </div>
 
-      <!-- Mitarbeiter-Karten -->
-      <div style="font-size:.78rem;color:var(--text-muted);margin-bottom:.75rem">${new Date().toLocaleDateString('de-DE',{weekday:'long',day:'2-digit',month:'long',year:'numeric'})} · Aktualisierung alle 60 Sek.</div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:1rem">
+      <div style="font-size:.75rem;color:var(--text-muted);margin-bottom:.85rem">
+        ${new Date().toLocaleDateString('de-DE',{weekday:'long',day:'2-digit',month:'long',year:'numeric'})} · Aktualisierung alle 60 Sek.
+      </div>
+      <div class="zeit-team-grid">
         ${cards || '<p style="color:var(--text-muted)">Keine Mitarbeiter vorhanden</p>'}
       </div>`;
 
@@ -438,7 +433,8 @@ const ZeiterfassungModule = {
   /* ── Tab: Heute ── */
   renderHeuteTab() {
     const user = Auth.currentUser;
-    const statusLabel = { idle: 'Nicht eingestempelt', working: 'Eingestempelt', paused: 'Pause', gone: 'Feierabend' };
+    const s = this.state.status;
+    const statusLabels = { idle: 'Nicht eingestempelt', working: 'Eingestempelt', paused: 'Pause', gone: 'Feierabend' };
     const elapsed = this.getElapsed();
     const heutes = this._allEntries
       .filter(e => e.datum === today())
@@ -448,25 +444,28 @@ const ZeiterfassungModule = {
     document.getElementById('zeit-user-tab').innerHTML = `
       <div class="zeit-module">
         <div class="zeit-clock-card">
-          <div style="font-size:.875rem;opacity:.7">Guten Tag, ${user?.name || ''}!</div>
+          <div class="zeit-clock-greeting">Guten Tag, ${user?.name || ''}!</div>
           <div class="zeit-clock-display" id="zeit-module-timer">${this.formatElapsed(elapsed)}</div>
           <div class="zeit-clock-date">${new Date().toLocaleDateString('de-DE', { weekday:'long', day:'2-digit', month:'long', year:'numeric' })}</div>
-          <div class="zeit-clock-status">${statusLabel[this.state.status] || ''}</div>
-          ${(this.state.status === 'working' || this.state.status === 'paused') && this.state.projekt_label
-            ? `<div style="font-size:.8rem;color:var(--text-muted);margin:.2rem 0">${this.state.projekt_label}</div>` : ''}
+          <div class="zeit-clock-status status-${s}">
+            <span class="zeit-clock-status-dot"></span>
+            ${statusLabels[s] || ''}
+          </div>
+          ${(s === 'working' || s === 'paused') && this.state.projekt_label
+            ? `<div class="zeit-clock-projekt">${this.state.projekt_label}</div>` : ''}
           <div class="zeit-clock-buttons">${this.renderActionBtns()}</div>
         </div>
 
         ${heutes.length ? `
-        <div class="card">
-          <div class="card-header">
-            <span class="card-title">Heutiges Protokoll</span>
-            ${totalHeute ? `<span style="font-weight:700;color:var(--navy)">${formatDuration(totalHeute)}</span>` : ''}
+        <div class="zeit-log-card">
+          <div class="zeit-log-header">
+            <span class="zeit-log-title">Heutiges Protokoll</span>
+            ${totalHeute ? `<span class="zeit-log-total">${formatDuration(totalHeute)}</span>` : ''}
           </div>
           ${this.renderTodayLog(heutes)}
         </div>` : (this.state.log.length && this.state.status !== 'idle' && this.state.status !== 'gone') ? `
-        <div class="card">
-          <div class="card-header"><span class="card-title">Heutiger Tag</span></div>
+        <div class="zeit-log-card">
+          <div class="zeit-log-header"><span class="zeit-log-title">Heutiger Tag</span></div>
           ${this.renderCurrentLog()}
         </div>` : ''}
       </div>`;
@@ -508,63 +507,62 @@ const ZeiterfassungModule = {
     const maxMins = Math.max(...days.map(d => d.mins), 480);
 
     document.getElementById('zeit-user-tab').innerHTML = `
-      <!-- Stat-Karten -->
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:.75rem;margin-bottom:1.25rem">
-        <div class="card" style="text-align:center;padding:1rem .5rem">
-          <div style="font-size:.72rem;color:var(--text-muted);margin-bottom:.2rem">Gesamt Woche</div>
-          <div style="font-size:1.4rem;font-weight:800;color:var(--navy)">${formatDuration(total)}</div>
+      <div class="zeit-stat-row" style="margin-bottom:1.25rem">
+        <div class="zeit-stat-card">
+          <div class="zeit-stat-label">Gesamt Woche</div>
+          <div class="zeit-stat-value">${formatDuration(total)}</div>
         </div>
-        <div class="card" style="text-align:center;padding:1rem .5rem">
-          <div style="font-size:.72rem;color:var(--text-muted);margin-bottom:.2rem">Arbeitstage</div>
-          <div style="font-size:1.4rem;font-weight:800;color:var(--navy)">${arbeitstage} <span style="font-size:.85rem;font-weight:400">Tage</span></div>
+        <div class="zeit-stat-card">
+          <div class="zeit-stat-label">Arbeitstage</div>
+          <div class="zeit-stat-value">${arbeitstage} <span class="zeit-stat-sub">Tage</span></div>
         </div>
-        <div class="card" style="text-align:center;padding:1rem .5rem">
-          <div style="font-size:.72rem;color:var(--text-muted);margin-bottom:.2rem">Ø pro Tag</div>
-          <div style="font-size:1.4rem;font-weight:800;color:var(--navy)">${formatDuration(schnitt)}</div>
+        <div class="zeit-stat-card">
+          <div class="zeit-stat-label">Ø pro Tag</div>
+          <div class="zeit-stat-value">${formatDuration(schnitt)}</div>
         </div>
-        <div class="card" style="text-align:center;padding:1rem .5rem">
-          <div style="font-size:.72rem;color:var(--text-muted);margin-bottom:.2rem">Soll (40h)</div>
-          <div style="font-size:1.4rem;font-weight:800;color:${sollDiff >= 0 ? 'var(--green)' : 'var(--orange)'}">${sollDiff >= 0 ? '+' : ''}${formatDuration(Math.abs(sollDiff))}</div>
+        <div class="zeit-stat-card">
+          <div class="zeit-stat-label">Soll (40h)</div>
+          <div class="zeit-stat-value ${sollDiff >= 0 ? 'positive' : 'negative'}">${sollDiff >= 0 ? '+' : ''}${formatDuration(Math.abs(sollDiff))}</div>
         </div>
       </div>
 
-      <!-- Wochen-Balkendiagramm -->
-      <div class="card" style="margin-bottom:1.25rem">
-        <div class="card-header"><span class="card-title">Wochenverlauf</span></div>
-        <div style="display:flex;gap:.4rem;align-items:flex-end;height:110px;padding:.25rem 0 0">
+      <div class="zeit-chart-wrap" style="margin-bottom:1.25rem">
+        <div class="zeit-chart-title">Wochenverlauf</div>
+        <div class="zeit-bars">
           ${days.map(day => {
-            const pct = day.mins ? Math.max(5, Math.round(day.mins / maxMins * 100)) : 0;
+            const pct = day.mins ? Math.max(6, Math.round(day.mins / maxMins * 100)) : 0;
             const isToday = day.dateStr === today();
             return `
-            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:.25rem">
-              <div style="font-size:.68rem;color:var(--text-muted);font-weight:${day.mins?'600':'400'};white-space:nowrap">${day.mins ? formatDuration(day.mins) : ''}</div>
-              <div style="width:100%;flex:1;display:flex;align-items:flex-end">
-                <div style="width:100%;height:${pct}%;min-height:${pct?'4px':'0'};background:${isToday?'var(--navy)':day.mins?'var(--blue-light)':'var(--card-border)'};border-radius:4px 4px 0 0"></div>
+            <div class="zeit-bar-col">
+              <div class="zeit-bar-val">${day.mins ? formatDuration(day.mins) : ''}</div>
+              <div class="zeit-bar-track">
+                <div class="zeit-bar-fill ${isToday ? 'today' : day.mins ? 'has-data' : ''}" style="height:${pct}%"></div>
               </div>
-              <div style="font-size:.75rem;font-weight:${isToday?'700':'400'};color:${isToday?'var(--navy)':'var(--text-muted)'}">${day.name}</div>
+              <div class="zeit-bar-day ${isToday ? 'today' : ''}">${day.name}</div>
             </div>`;
           }).join('')}
         </div>
       </div>
 
-      <!-- Tagesdetails -->
-      <div class="card">
-        <div class="card-header"><span class="card-title">Details</span></div>
+      <div class="zeit-detail-card">
+        <div class="zeit-detail-header"><div class="zeit-detail-title">Details</div></div>
         ${days.filter(d => d.entries.length).length === 0
-          ? '<p style="color:var(--text-muted);padding:.5rem 0">Noch keine Einträge diese Woche</p>'
+          ? '<p style="color:var(--text-muted);padding:.75rem 1.1rem">Noch keine Einträge diese Woche</p>'
           : days.filter(d => d.entries.length).map(day => `
-          <div style="padding:.65rem 0;border-bottom:1px solid var(--card-border)">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.3rem">
-              <span style="font-weight:600;font-size:.875rem">${day.d.toLocaleDateString('de-DE',{weekday:'long',day:'2-digit',month:'2-digit'})}</span>
-              <span style="font-weight:700;color:var(--navy)">${formatDuration(day.mins)}</span>
+          <div class="zeit-day-block">
+            <div class="zeit-day-label">
+              <span class="zeit-day-name">${day.d.toLocaleDateString('de-DE',{weekday:'long',day:'2-digit',month:'2-digit'})}</span>
+              <span class="zeit-day-total">${formatDuration(day.mins)}</span>
             </div>
             ${day.entries.map(e => `
-              <div style="display:flex;justify-content:space-between;align-items:center;font-size:.78rem;color:var(--text-muted);padding:.1rem 0">
+              <div class="zeit-entry-row">
                 <span>${formatTime(e.start_zeit)} – ${e.end_zeit?formatTime(e.end_zeit):'laufend'}${e.projekt_label?' · '+e.projekt_label:''}</span>
-                <div style="display:flex;align-items:center;gap:.2rem">
-                  <span>${formatDuration(e.gesamt_minuten)}</span>
-                  <button onclick="ZeiterfassungModule.editEntry('${e.id}')" style="background:none;border:none;cursor:pointer;padding:.1rem .25rem;border-radius:4px;color:var(--text-muted);font-size:.8rem" title="Bearbeiten">✎</button>
-                  <button onclick="ZeiterfassungModule.deleteEntry('${e.id}')" style="background:none;border:none;cursor:pointer;padding:.1rem .25rem;border-radius:4px;color:var(--red);font-size:.8rem" title="Löschen">✕</button>
+                <div style="display:flex;align-items:center;gap:.15rem">
+                  <span style="font-weight:600;color:var(--text)">${formatDuration(e.gesamt_minuten)}</span>
+                  <div class="zeit-log-actions">
+                    <button onclick="ZeiterfassungModule.editEntry('${e.id}')" title="Bearbeiten">✎</button>
+                    <button onclick="ZeiterfassungModule.deleteEntry('${e.id}')" class="del" title="Löschen">✕</button>
+                  </div>
                 </div>
               </div>`).join('')}
           </div>`).join('')}
@@ -584,72 +582,72 @@ const ZeiterfassungModule = {
     const monthLabel = m => new Date(m + '-01').toLocaleDateString('de-DE', { month: 'long', year: 'numeric' });
 
     document.getElementById('zeit-user-tab').innerHTML = `
-      <!-- Monatsfilter -->
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:.5rem">
-        <div style="font-weight:700;font-size:1rem">${monthLabel(this.userMonth)}</div>
+        <div style="font-weight:800;font-size:1.05rem;color:var(--text)">${monthLabel(this.userMonth)}</div>
         <select class="form-select" style="width:auto" onchange="ZeiterfassungModule.userMonth=this.value;ZeiterfassungModule.renderUserTab()">
           ${months.map(m => `<option value="${m}" ${m===this.userMonth?'selected':''}>${monthLabel(m)}</option>`).join('')}
         </select>
       </div>
 
-      <!-- Stat-Karten -->
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:.75rem;margin-bottom:1.25rem">
-        <div class="card" style="text-align:center;padding:1rem .5rem">
-          <div style="font-size:.72rem;color:var(--text-muted);margin-bottom:.2rem">Gesamt</div>
-          <div style="font-size:1.4rem;font-weight:800;color:var(--navy)">${formatDuration(total)}</div>
+      <div class="zeit-stat-row" style="margin-bottom:1.25rem">
+        <div class="zeit-stat-card">
+          <div class="zeit-stat-label">Gesamt</div>
+          <div class="zeit-stat-value">${formatDuration(total)}</div>
         </div>
-        <div class="card" style="text-align:center;padding:1rem .5rem">
-          <div style="font-size:.72rem;color:var(--text-muted);margin-bottom:.2rem">Arbeitstage</div>
-          <div style="font-size:1.4rem;font-weight:800;color:var(--navy)">${arbeitstage}</div>
+        <div class="zeit-stat-card">
+          <div class="zeit-stat-label">Arbeitstage</div>
+          <div class="zeit-stat-value">${arbeitstage}</div>
         </div>
-        <div class="card" style="text-align:center;padding:1rem .5rem">
-          <div style="font-size:.72rem;color:var(--text-muted);margin-bottom:.2rem">Ø pro Tag</div>
-          <div style="font-size:1.4rem;font-weight:800;color:var(--navy)">${arbeitstage ? formatDuration(Math.round(total/arbeitstage)) : '—'}</div>
+        <div class="zeit-stat-card">
+          <div class="zeit-stat-label">Ø pro Tag</div>
+          <div class="zeit-stat-value">${arbeitstage ? formatDuration(Math.round(total/arbeitstage)) : '—'}</div>
         </div>
-        <div class="card" style="text-align:center;padding:1rem .5rem">
-          <div style="font-size:.72rem;color:var(--text-muted);margin-bottom:.2rem">Einträge</div>
-          <div style="font-size:1.4rem;font-weight:800;color:var(--navy)">${monatsEintraege.length}</div>
+        <div class="zeit-stat-card">
+          <div class="zeit-stat-label">Einträge</div>
+          <div class="zeit-stat-value">${monatsEintraege.length}</div>
         </div>
       </div>
 
-      <!-- Monatstabelle -->
-      <div class="card">
-        <div class="card-header"><span class="card-title">Alle Einträge</span></div>
+      <div class="zeit-detail-card">
+        <div class="zeit-detail-header"><div class="zeit-detail-title">Alle Einträge</div></div>
         ${monatsEintraege.length ? `
-        <div style="overflow-x:auto">
-          <table style="width:100%;font-size:.82rem;border-collapse:collapse">
+        <div class="zeit-table-wrap">
+          <table class="zeit-table">
             <thead>
-              <tr style="background:var(--bg)">
-                <th style="padding:.5rem .6rem;text-align:left;font-weight:600">Datum</th>
-                <th style="padding:.5rem .6rem;text-align:left;font-weight:600">Beginn</th>
-                <th style="padding:.5rem .6rem;text-align:left;font-weight:600">Ende</th>
-                <th style="padding:.5rem .6rem;text-align:left;font-weight:600">Projekt / Bereich</th>
-                <th style="padding:.5rem .6rem;text-align:right;font-weight:600">Stunden</th>
-                <th style="padding:.5rem .6rem"></th>
+              <tr>
+                <th>Datum</th>
+                <th>Beginn</th>
+                <th>Ende</th>
+                <th>Projekt / Bereich</th>
+                <th style="text-align:right">Stunden</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
               ${monatsEintraege.map(e => `
-                <tr style="border-top:1px solid var(--card-border)">
-                  <td style="padding:.5rem .6rem">${formatDate(e.datum)}</td>
-                  <td style="padding:.5rem .6rem">${formatTime(e.start_zeit)}</td>
-                  <td style="padding:.5rem .6rem">${e.end_zeit?formatTime(e.end_zeit):'—'}</td>
-                  <td style="padding:.5rem .6rem;color:var(--text-muted)">${e.projekt_label||'—'}</td>
-                  <td style="padding:.5rem .6rem;text-align:right;font-weight:600">${formatDuration(e.gesamt_minuten)}</td>
-                  <td style="padding:.5rem .4rem;white-space:nowrap">
-                    <button onclick="ZeiterfassungModule.editEntry('${e.id}')" style="background:none;border:none;cursor:pointer;padding:.2rem .35rem;border-radius:4px;color:var(--text-muted);font-size:.85rem" title="Bearbeiten">✎</button>
-                    <button onclick="ZeiterfassungModule.deleteEntry('${e.id}')" style="background:none;border:none;cursor:pointer;padding:.2rem .35rem;border-radius:4px;color:var(--red);font-size:.85rem" title="Löschen">✕</button>
+                <tr>
+                  <td class="bold">${formatDate(e.datum)}</td>
+                  <td>${formatTime(e.start_zeit)}</td>
+                  <td>${e.end_zeit?formatTime(e.end_zeit):'—'}</td>
+                  <td class="muted">${e.projekt_label||'—'}</td>
+                  <td class="right">${formatDuration(e.gesamt_minuten)}</td>
+                  <td class="actions">
+                    <div class="zeit-log-actions" style="justify-content:flex-end">
+                      <button onclick="ZeiterfassungModule.editEntry('${e.id}')" title="Bearbeiten">✎</button>
+                      <button onclick="ZeiterfassungModule.deleteEntry('${e.id}')" class="del" title="Löschen">✕</button>
+                    </div>
                   </td>
                 </tr>`).join('')}
             </tbody>
             <tfoot>
-              <tr style="border-top:2px solid var(--card-border);background:var(--bg)">
-                <td colspan="4" style="padding:.5rem .6rem;font-weight:700">Gesamt</td>
-                <td style="padding:.5rem .6rem;text-align:right;font-weight:800;color:var(--navy)">${formatDuration(total)}</td>
+              <tr>
+                <td colspan="4" class="bold">Gesamt</td>
+                <td class="right">${formatDuration(total)}</td>
+                <td></td>
               </tr>
             </tfoot>
           </table>
-        </div>` : '<p style="color:var(--text-muted);padding:.5rem 0">Keine Einträge in diesem Monat</p>'}
+        </div>` : '<p style="color:var(--text-muted);padding:.75rem 1.1rem">Keine Einträge in diesem Monat</p>'}
       </div>`;
   },
 
@@ -668,42 +666,38 @@ const ZeiterfassungModule = {
     const maxMins = projekte[0]?.minuten || 1;
 
     document.getElementById('zeit-user-tab').innerHTML = `
-      <!-- Gesamtübersicht -->
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:.75rem;margin-bottom:1.25rem">
-        <div class="card" style="text-align:center;padding:1rem .5rem">
-          <div style="font-size:.72rem;color:var(--text-muted);margin-bottom:.2rem">Gesamt (alle Zeit)</div>
-          <div style="font-size:1.4rem;font-weight:800;color:var(--navy)">${formatDuration(gesamtMinuten)}</div>
+      <div class="zeit-stat-row" style="margin-bottom:1.25rem">
+        <div class="zeit-stat-card">
+          <div class="zeit-stat-label">Gesamt (alle Zeit)</div>
+          <div class="zeit-stat-value">${formatDuration(gesamtMinuten)}</div>
         </div>
-        <div class="card" style="text-align:center;padding:1rem .5rem">
-          <div style="font-size:.72rem;color:var(--text-muted);margin-bottom:.2rem">Projekte / Bereiche</div>
-          <div style="font-size:1.4rem;font-weight:800;color:var(--navy)">${projekte.length}</div>
+        <div class="zeit-stat-card">
+          <div class="zeit-stat-label">Projekte / Bereiche</div>
+          <div class="zeit-stat-value">${projekte.length}</div>
         </div>
-        <div class="card" style="text-align:center;padding:1rem .5rem">
-          <div style="font-size:.72rem;color:var(--text-muted);margin-bottom:.2rem">Buchungen gesamt</div>
-          <div style="font-size:1.4rem;font-weight:800;color:var(--navy)">${this._allEntries.length}</div>
+        <div class="zeit-stat-card">
+          <div class="zeit-stat-label">Buchungen gesamt</div>
+          <div class="zeit-stat-value">${this._allEntries.length}</div>
         </div>
       </div>
 
-      <!-- Stunden pro Projekt -->
-      <div class="card">
-        <div class="card-header">
-          <span class="card-title">Stunden nach Projekt / Bereich</span>
-        </div>
+      <div class="zeit-detail-card">
+        <div class="zeit-detail-header"><div class="zeit-detail-title">Stunden nach Projekt / Bereich</div></div>
         ${projekte.length ? projekte.map(p => {
           const pct = Math.round(p.minuten / maxMins * 100);
           const anteil = gesamtMinuten ? Math.round(p.minuten / gesamtMinuten * 100) : 0;
           return `
-          <div style="padding:.75rem 0;border-bottom:1px solid var(--card-border)">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.4rem">
-              <span style="font-weight:600;font-size:.875rem">${p.label}</span>
-              <span style="font-weight:700;color:var(--navy)">${formatDuration(p.minuten)} <span style="font-weight:400;color:var(--text-muted);font-size:.75rem">${anteil}%</span></span>
+          <div class="zeit-proj-item">
+            <div class="zeit-proj-row">
+              <span class="zeit-proj-name">${p.label}</span>
+              <span class="zeit-proj-val">${formatDuration(p.minuten)} <span class="zeit-proj-pct">${anteil}%</span></span>
             </div>
-            <div style="background:var(--card-border);border-radius:4px;height:7px;overflow:hidden;margin-bottom:.25rem">
-              <div style="width:${pct}%;height:100%;background:var(--navy);border-radius:4px"></div>
+            <div class="zeit-prog-track">
+              <div class="zeit-prog-fill" style="width:${pct}%"></div>
             </div>
-            <div style="font-size:.75rem;color:var(--text-muted)">${p.eintraege} Buchung${p.eintraege!==1?'en':''}</div>
+            <div class="zeit-proj-sub">${p.eintraege} Buchung${p.eintraege!==1?'en':''}</div>
           </div>`;
-        }).join('') : '<p style="color:var(--text-muted)">Noch keine Daten vorhanden</p>'}
+        }).join('') : '<p style="color:var(--text-muted);padding:.75rem 1.1rem">Noch keine Daten vorhanden</p>'}
       </div>`;
   },
 
@@ -721,7 +715,7 @@ const ZeiterfassungModule = {
   },
 
   renderCurrentLog() {
-    if (!this.state.log.length) return '<p style="color:var(--text-muted);padding:1rem">Noch keine Einträge</p>';
+    if (!this.state.log.length) return '<p style="color:var(--text-muted);padding:1rem 1.1rem">Noch keine Einträge</p>';
     const items = [];
     for (let i = 0; i < this.state.log.length; i++) {
       const l = this.state.log[i];
@@ -731,15 +725,15 @@ const ZeiterfassungModule = {
         const pauseMs = pauseEnd ? pauseEnd - new Date(l.time) : null;
         const pauseLabel = pauseMs !== null ? formatDuration(Math.round(pauseMs / 60000)) : 'läuft...';
         items.push(`<div class="zeit-log-item">
-          <span class="zeit-log-type">⏸ Pause</span>
+          <div><div class="zeit-log-type">⏸ Pause</div></div>
           <span class="zeit-log-time">${pauseLabel}</span>
         </div>`);
       } else if (l.type === 'weiter') {
         /* wird in der Pause-Zeile angezeigt */
       } else {
-        const icons = { start: '▶ Start', gehen: 'Gehen' };
+        const icons = { start: '▶ Start', gehen: '⏹ Gehen' };
         items.push(`<div class="zeit-log-item">
-          <span class="zeit-log-type">${icons[l.type] || l.type}</span>
+          <div><div class="zeit-log-type">${icons[l.type] || l.type}</div></div>
           <span class="zeit-log-time">${formatTime(l.time)}</span>
         </div>`);
       }
@@ -748,17 +742,19 @@ const ZeiterfassungModule = {
   },
 
   renderTodayLog(entries) {
-    if (!entries.length) return '<p style="color:var(--text-muted);padding:1rem">Noch keine Einträge</p>';
+    if (!entries.length) return '<p style="color:var(--text-muted);padding:1rem 1.1rem">Noch keine Einträge</p>';
     return entries.map(e => `
       <div class="zeit-log-item">
         <div>
-          <span class="zeit-log-type">⏱ ${formatTime(e.start_zeit)} – ${e.end_zeit ? formatTime(e.end_zeit) : 'laufend'}</span>
-          ${e.projekt_label ? `<div style="font-size:.75rem;color:var(--text-muted);margin-top:.15rem">${e.projekt_label}</div>` : ''}
+          <div class="zeit-log-type">⏱ ${formatTime(e.start_zeit)} – ${e.end_zeit ? formatTime(e.end_zeit) : 'laufend'}</div>
+          ${e.projekt_label ? `<div class="zeit-log-sub">${e.projekt_label}</div>` : ''}
         </div>
-        <div style="display:flex;align-items:center;gap:.3rem">
+        <div style="display:flex;align-items:center;gap:.2rem">
           <span class="zeit-log-time">${formatDuration(e.gesamt_minuten)}</span>
-          <button onclick="ZeiterfassungModule.editEntry('${e.id}')" style="background:none;border:none;cursor:pointer;padding:.2rem .3rem;border-radius:4px;color:var(--text-muted);font-size:.85rem" title="Bearbeiten">✎</button>
-          <button onclick="ZeiterfassungModule.deleteEntry('${e.id}')" style="background:none;border:none;cursor:pointer;padding:.2rem .3rem;border-radius:4px;color:var(--red);font-size:.85rem" title="Löschen">✕</button>
+          <div class="zeit-log-actions">
+            <button onclick="ZeiterfassungModule.editEntry('${e.id}')" title="Bearbeiten">✎</button>
+            <button onclick="ZeiterfassungModule.deleteEntry('${e.id}')" class="del" title="Löschen">✕</button>
+          </div>
         </div>
       </div>`).join('');
   },
