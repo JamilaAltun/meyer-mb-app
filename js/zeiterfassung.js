@@ -18,6 +18,16 @@ const ZeiterfassungModule = {
       if (this.state.log) this.state.log.push({ type: 'pause', time: now });
       this.saveState();
     }
+    /* Beim Schließen/Reload: Status sofort in localStorage einfrieren */
+    window.onbeforeunload = () => {
+      if (this.state?.status === 'working') {
+        const now = new Date().toISOString();
+        this.state.status = 'paused';
+        this.state.pauseStart = now;
+        if (this.state.log) this.state.log.push({ type: 'pause', time: now });
+        this.saveState();
+      }
+    };
     this.updateWidget();
     /* .onclick statt addEventListener — kein Stapeln bei mehrfachem initWidget-Aufruf */
     document.getElementById('sidebar-start-btn').onclick = () => this.start();
@@ -185,7 +195,16 @@ const ZeiterfassungModule = {
   /* ── Elapsed berechnen ── */
   getElapsed() {
     if (!this.state.startTime) return 0;
-    const now = this.state.status === 'paused' ? new Date(this.state.pauseStart) : new Date();
+    let now;
+    if (this.state.status === 'paused') {
+      now = new Date(this.state.pauseStart);
+    } else if (this.state.status === 'gone') {
+      /* Eingefroren auf den Gehen-Zeitpunkt, nicht current time */
+      const gehenEvent = (this.state.log || []).slice().reverse().find(l => l.type === 'gehen');
+      now = gehenEvent ? new Date(gehenEvent.time) : new Date(this.state.startTime);
+    } else {
+      now = new Date();
+    }
     return Math.max(0, now - new Date(this.state.startTime) - this.state.totalPaused);
   },
 
