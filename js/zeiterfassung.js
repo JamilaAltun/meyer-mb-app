@@ -351,7 +351,12 @@ const ZeiterfassungModule = {
   },
 
   /* ── Tab: Team (Admin) ── */
+  _teamMemberUserId: null,
+  _teamMemberEntries: [],
+  _teamMemberMonth: new Date().toISOString().slice(0, 7),
+
   async renderTeamTab() {
+    this._teamMemberUserId = null;
     let users = [], entries = [];
     try {
       [users, entries] = await Promise.all([
@@ -368,24 +373,21 @@ const ZeiterfassungModule = {
       const active = entry && !entry.end_zeit;
       const done   = entry && !!entry.end_zeit;
 
-      let statusColor, statusText, zeitInfo;
+      let statusText, zeitInfo;
       if (active) {
-        statusColor = 'var(--green)';
-        statusText  = 'Eingestempelt';
-        zeitInfo    = `Seit ${formatTime(entry.start_zeit)}${entry.projekt_label ? '<br>' + entry.projekt_label : ''}`;
+        statusText = 'Eingestempelt';
+        zeitInfo   = `Seit ${formatTime(entry.start_zeit)}${entry.projekt_label ? '<br>' + entry.projekt_label : ''}`;
       } else if (done) {
-        statusColor = 'var(--navy)';
-        statusText  = 'Feierabend';
-        zeitInfo    = `${formatTime(entry.start_zeit)} – ${formatTime(entry.end_zeit)}<br><strong>${formatDuration(entry.gesamt_minuten)}</strong>`;
+        statusText = 'Feierabend';
+        zeitInfo   = `${formatTime(entry.start_zeit)} – ${formatTime(entry.end_zeit)}<br><strong>${formatDuration(entry.gesamt_minuten)}</strong>`;
       } else {
-        statusColor = 'var(--red)';
-        statusText  = 'Nicht eingestempelt';
-        zeitInfo    = '—';
+        statusText = 'Nicht eingestempelt';
+        zeitInfo   = '—';
       }
 
       const cardCls = active ? 'active' : done ? 'done' : 'absent';
       return `
-        <div class="zeit-team-card ${cardCls}">
+        <div class="zeit-team-card ${cardCls}" onclick="ZeiterfassungModule.showTeamMemberDetail('${u.id}')" style="cursor:pointer">
           <div class="zeit-team-avatar ${cardCls}">${u.name.charAt(0).toUpperCase()}</div>
           <div class="zeit-team-name">${u.name}</div>
           <div class="zeit-team-pos">${u.position || '—'}</div>
@@ -424,10 +426,304 @@ const ZeiterfassungModule = {
         ${cards || '<p style="color:var(--text-muted)">Keine Mitarbeiter vorhanden</p>'}
       </div>`;
 
-    /* Alle 60 Sekunden automatisch aktualisieren */
     this._teamRefreshInterval = setInterval(() => {
-      if (this.userTab === 'team') this.renderTeamTab();
+      if (this.userTab === 'team' && !this._teamMemberUserId) this.renderTeamTab();
     }, 60000);
+  },
+
+  /* ── Mitarbeiter-Detailansicht ── */
+  async showTeamMemberDetail(userId) {
+    clearInterval(this._teamRefreshInterval);
+    this._teamMemberUserId = userId;
+    this._teamMemberMonth = this._teamMemberMonth || new Date().toISOString().slice(0, 7);
+
+    let users = [], allEntries = [];
+    try {
+      [users, allEntries] = await Promise.all([
+        DB.getAll('users'),
+        DB.getAll('zeiterfassung', { user_id: userId }),
+      ]);
+    } catch {}
+
+    this._teamMemberEntries = allEntries;
+    const user = users.find(u => u.id === userId) || { name: '—', position: '—' };
+
+    this._renderTeamMemberDetail(user, allEntries);
+  },
+
+  _renderTeamMemberDetail(user, allEntries) {
+    const monthLabel = m => new Date(m + '-01').toLocaleDateString('de-DE', { month: 'long', year: 'numeric' });
+    const months = [...new Set(allEntries.map(e => e.datum?.slice(0,7)).filter(Boolean))].sort().reverse();
+    if (!months.includes(this._teamMemberMonth)) months.unshift(this._teamMemberMonth);
+
+    const monatsEintraege = allEntries
+      .filter(e => e.datum?.startsWith(this._teamMemberMonth))
+      .sort((a,b) => a.datum > b.datum ? 1 : -1);
+
+    const total      = monatsEintraege.reduce((s, e) => s + (e.gesamt_minuten || 0), 0);
+    const arbeitstage = [...new Set(monatsEintraege.map(e => e.datum))].length;
+    const totalAll   = allEntries.reduce((s, e) => s + (e.gesamt_minuten || 0), 0);
+
+    /* Heute und diese Woche */
+    const todayStr = today();
+    const now = new Date();
+    const weekStart = new Date(now);
+    weekStart.setDate(now.getDate() - now.getDay() + 1);
+    weekStart.setHours(0,0,0,0);
+    const todayTotal = allEntries.filter(e => e.datum === todayStr).reduce((s,e) => s+(e.gesamt_minuten||0), 0);
+    const weekTotal  = allEntries.filter(e => { const d = new Date(e.datum); return d >= weekStart && d <= now; }).reduce((s,e) => s+(e.gesamt_minuten||0), 0);
+
+    const cardCls = allEntries.find(e => e.datum === todayStr && !e.end_zeit) ? 'active'
+      : allEntries.find(e => e.datum === todayStr && !!e.end_zeit) ? 'done' : 'absent';
+
+    document.getElementById('zeit-user-tab').innerHTML = `
+      <!-- Header mit Zurück -->
+      <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem;flex-wrap:wrap">
+        <button onclick="ZeiterfassungModule.renderTeamTab()" style="display:inline-flex;align-items:center;gap:.4rem;background:var(--card);border:1px solid var(--card-border);border-radius:10px;padding:.45rem .9rem;font-size:.82rem;font-weight:600;color:var(--text-muted);cursor:pointer;box-shadow:var(--shadow);transition:all .15s ease" onmouseover="this.style.color='var(--navy)'" onmouseout="this.style.color='var(--text-muted)'">
+          ← Zurück
+        </button>
+        <div style="display:flex;align-items:center;gap:.85rem;flex:1">
+          <div class="zeit-team-avatar ${cardCls}" style="width:46px;height:46px;font-size:1.2rem;flex-shrink:0">${user.name.charAt(0).toUpperCase()}</div>
+          <div>
+            <div style="font-weight:800;font-size:1.05rem;color:var(--text)">${user.name}</div>
+            <div style="font-size:.78rem;color:var(--text-muted)">${user.position || '—'}</div>
+          </div>
+          <button onclick="ZeiterfassungModule.addTeamEntry('${this._teamMemberUserId}')" class="btn btn-primary btn-sm" style="margin-left:auto">+ Eintrag</button>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="zeit-stat-row" style="margin-bottom:1.25rem">
+        <div class="zeit-stat-card">
+          <div class="zeit-stat-label">Heute</div>
+          <div class="zeit-stat-value">${todayTotal ? formatDuration(todayTotal) : '—'}</div>
+        </div>
+        <div class="zeit-stat-card">
+          <div class="zeit-stat-label">Diese Woche</div>
+          <div class="zeit-stat-value">${weekTotal ? formatDuration(weekTotal) : '—'}</div>
+        </div>
+        <div class="zeit-stat-card">
+          <div class="zeit-stat-label">Dieser Monat</div>
+          <div class="zeit-stat-value">${formatDuration(total)}</div>
+        </div>
+        <div class="zeit-stat-card">
+          <div class="zeit-stat-label">Gesamt</div>
+          <div class="zeit-stat-value">${formatDuration(totalAll)}</div>
+        </div>
+      </div>
+
+      <!-- Monatsfilter -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:.5rem">
+        <div style="font-weight:700;font-size:.95rem;color:var(--text)">${monthLabel(this._teamMemberMonth)}</div>
+        <select class="form-select" style="width:auto" onchange="ZeiterfassungModule._teamMemberMonth=this.value;ZeiterfassungModule._renderTeamMemberDetail(${JSON.stringify(user)},ZeiterfassungModule._teamMemberEntries)">
+          ${months.map(m => `<option value="${m}" ${m===this._teamMemberMonth?'selected':''}>${monthLabel(m)}</option>`).join('')}
+        </select>
+      </div>
+
+      <!-- Tabelle -->
+      <div class="zeit-detail-card">
+        <div class="zeit-detail-header">
+          <div class="zeit-detail-title">Einträge ${monthLabel(this._teamMemberMonth)}</div>
+          ${arbeitstage ? `<div style="font-size:.78rem;color:var(--text-muted)">${arbeitstage} Arbeitstag${arbeitstage!==1?'e':''} · Ø ${formatDuration(arbeitstage?Math.round(total/arbeitstage):0)}/Tag</div>` : ''}
+        </div>
+        ${monatsEintraege.length ? `
+        <div class="zeit-table-wrap">
+          <table class="zeit-table">
+            <thead>
+              <tr>
+                <th>Datum</th>
+                <th>Beginn</th>
+                <th>Ende</th>
+                <th>Projekt / Bereich</th>
+                <th style="text-align:right">Stunden</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              ${monatsEintraege.map(e => `
+                <tr>
+                  <td class="bold">${formatDate(e.datum)}</td>
+                  <td>${formatTime(e.start_zeit)}</td>
+                  <td>${e.end_zeit ? formatTime(e.end_zeit) : '<span style="color:var(--green);font-weight:600">aktiv</span>'}</td>
+                  <td class="muted">${e.projekt_label || '—'}</td>
+                  <td class="right">${formatDuration(e.gesamt_minuten)}</td>
+                  <td class="actions">
+                    <div class="zeit-log-actions" style="justify-content:flex-end">
+                      <button onclick="ZeiterfassungModule.editTeamEntry('${e.id}')" title="Bearbeiten">✎</button>
+                      <button onclick="ZeiterfassungModule.deleteTeamEntry('${e.id}')" class="del" title="Löschen">✕</button>
+                    </div>
+                  </td>
+                </tr>`).join('')}
+            </tbody>
+            <tfoot>
+              <tr>
+                <td colspan="4" class="bold">Gesamt</td>
+                <td class="right">${formatDuration(total)}</td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>` : '<p style="color:var(--text-muted);padding:.75rem 1.1rem">Keine Einträge in diesem Monat</p>'}
+      </div>`;
+  },
+
+  /* ── Team-Eintrag bearbeiten (Admin) ── */
+  async editTeamEntry(id) {
+    const entry = this._teamMemberEntries.find(e => e.id === id);
+    if (!entry) return;
+
+    let auftraege = [];
+    try { auftraege = await DB.getAll('auftraege'); } catch {}
+    const aktiveAuftraege = auftraege.filter(a => a.workflow_status !== 'abgeschlossen');
+    const kategorien = Settings.get().zeit_kategorien || [];
+
+    const projektOpts = [{ id: null, label: null }];
+    aktiveAuftraege.forEach(a => projektOpts.push({ id: a.id, label: `${a.nummer || ''} – ${a.bezeichnung || ''}`.trim().replace(/^–\s*/, '') }));
+    kategorien.forEach(k => projektOpts.push({ id: null, label: k }));
+    this._editProjektOpts = projektOpts;
+    this._editEntryId = id;
+    this._editContext = 'team';
+
+    let currentIdx = 0;
+    if (entry.projekt_id) {
+      const i = projektOpts.findIndex(p => p.id === entry.projekt_id);
+      if (i > 0) currentIdx = i;
+    } else if (entry.projekt_label) {
+      const i = projektOpts.findIndex(p => p.label === entry.projekt_label);
+      if (i > 0) currentIdx = i;
+    }
+
+    let selectContent = `<option value="0" ${currentIdx===0?'selected':''}>— Kein Projekt / Allgemein —</option>`;
+    const auftragOpts = aktiveAuftraege.map((a, i) =>
+      `<option value="${i+1}" ${currentIdx===i+1?'selected':''}>${a.nummer||''} – ${a.bezeichnung||''}</option>`).join('');
+    const katOpts = kategorien.map((k, i) =>
+      `<option value="${aktiveAuftraege.length+1+i}" ${currentIdx===aktiveAuftraege.length+1+i?'selected':''}>${k}</option>`).join('');
+    if (auftragOpts) selectContent += `<optgroup label="Aktive Aufträge">${auftragOpts}</optgroup>`;
+    if (katOpts) selectContent += `<optgroup label="Sonstige Bereiche">${katOpts}</optgroup>`;
+
+    const startTime = entry.start_zeit ? new Date(entry.start_zeit).toTimeString().slice(0, 5) : '';
+    const endTime   = entry.end_zeit   ? new Date(entry.end_zeit).toTimeString().slice(0, 5) : '';
+
+    openModal('Eintrag bearbeiten', `
+      <div class="form-group">
+        <label class="form-label">Datum</label>
+        <input type="date" class="form-input" id="edit-datum" value="${entry.datum}">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
+        <div class="form-group">
+          <label class="form-label">Beginn</label>
+          <input type="time" class="form-input" id="edit-start" value="${startTime}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Ende</label>
+          <input type="time" class="form-input" id="edit-end" value="${endTime}">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Projekt / Bereich</label>
+        <select class="form-select" id="edit-projekt">${selectContent}</select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notiz</label>
+        <input type="text" class="form-input" id="edit-notiz" value="${entry.notiz || ''}">
+      </div>
+    `, () => this._saveEditEntry(), 'Speichern');
+  },
+
+  /* ── Team-Eintrag löschen (Admin) ── */
+  deleteTeamEntry(id) {
+    const entry = this._teamMemberEntries.find(e => e.id === id);
+    if (!entry) return;
+    confirmDelete(`Eintrag vom ${formatDate(entry.datum)} (${formatTime(entry.start_zeit)})`, async () => {
+      try {
+        await DB.delete('zeiterfassung', id);
+        closeModal();
+        showToast('Eintrag gelöscht', 'success');
+        this._teamMemberEntries = await DB.getAll('zeiterfassung', { user_id: this._teamMemberUserId });
+        const users = await DB.getAll('users');
+        const user = users.find(u => u.id === this._teamMemberUserId) || { name: '—', position: '—' };
+        this._renderTeamMemberDetail(user, this._teamMemberEntries);
+      } catch (e) {
+        closeModal();
+        showToast('Fehler: ' + e.message, 'error');
+      }
+    });
+  },
+
+  /* ── Team-Eintrag hinzufügen (Admin) ── */
+  async addTeamEntry(userId) {
+    let auftraege = [];
+    try { auftraege = await DB.getAll('auftraege'); } catch {}
+    const aktiveAuftraege = auftraege.filter(a => a.workflow_status !== 'abgeschlossen');
+    const kategorien = Settings.get().zeit_kategorien || [];
+
+    this._addProjektOpts = [{ id: null, label: null }];
+    aktiveAuftraege.forEach(a => this._addProjektOpts.push({ id: a.id, label: `${a.nummer || ''} – ${a.bezeichnung || ''}`.trim().replace(/^–\s*/, '') }));
+    kategorien.forEach(k => this._addProjektOpts.push({ id: null, label: k }));
+
+    let selectContent = `<option value="0">— Kein Projekt / Allgemein —</option>`;
+    const auftragOpts = aktiveAuftraege.map((a, i) =>
+      `<option value="${i+1}">${a.nummer||''} – ${a.bezeichnung||''}</option>`).join('');
+    const katOpts = kategorien.map((k, i) =>
+      `<option value="${aktiveAuftraege.length+1+i}">${k}</option>`).join('');
+    if (auftragOpts) selectContent += `<optgroup label="Aktive Aufträge">${auftragOpts}</optgroup>`;
+    if (katOpts) selectContent += `<optgroup label="Sonstige Bereiche">${katOpts}</optgroup>`;
+
+    this._addTeamUserId = userId;
+
+    openModal('Eintrag hinzufügen', `
+      <div class="form-group">
+        <label class="form-label">Datum</label>
+        <input type="date" class="form-input" id="add-datum" value="${today()}">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
+        <div class="form-group">
+          <label class="form-label">Beginn</label>
+          <input type="time" class="form-input" id="add-start">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Ende (optional)</label>
+          <input type="time" class="form-input" id="add-end">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Projekt / Bereich</label>
+        <select class="form-select" id="add-projekt">${selectContent}</select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notiz (optional)</label>
+        <input type="text" class="form-input" id="add-notiz" placeholder="z.B. Vergessen einzustempeln">
+      </div>
+    `, () => this._saveTeamEntry(), 'Hinzufügen');
+  },
+
+  async _saveTeamEntry() {
+    const datum    = document.getElementById('add-datum').value;
+    const startStr = document.getElementById('add-start').value;
+    const endStr   = document.getElementById('add-end').value;
+    const projektIdx = parseInt(document.getElementById('add-projekt').value) || 0;
+    const notiz    = document.getElementById('add-notiz').value.trim();
+    const userId   = this._addTeamUserId;
+
+    if (!datum || !startStr) { showToast('Datum und Beginn sind Pflichtfelder', 'error'); return false; }
+
+    const start_zeit = new Date(`${datum}T${startStr}:00`).toISOString();
+    const end_zeit   = endStr ? new Date(`${datum}T${endStr}:00`).toISOString() : null;
+    const gesamt_minuten = end_zeit ? Math.max(0, Math.round((new Date(end_zeit) - new Date(start_zeit)) / 60000)) : 0;
+    const opt = this._addProjektOpts?.[projektIdx] || { id: null, label: null };
+
+    try {
+      await DB.insert('zeiterfassung', {
+        user_id: userId, datum, start_zeit, end_zeit, gesamt_minuten,
+        projekt_id: opt.id || null, projekt_label: opt.label || null,
+        notiz: notiz || null, sync_status: 'pending',
+      });
+      showToast('Eintrag hinzugefügt', 'success');
+      this._teamMemberEntries = await DB.getAll('zeiterfassung', { user_id: userId });
+      const users = await DB.getAll('users');
+      const user = users.find(u => u.id === userId) || { name: '—', position: '—' };
+      this._renderTeamMemberDetail(user, this._teamMemberEntries);
+    } catch (e) { showToast('Fehler: ' + e.message, 'error'); }
   },
 
   /* ── Tab: Heute ── */
@@ -976,11 +1272,7 @@ const ZeiterfassungModule = {
 
     const start_zeit = new Date(`${datum}T${startStr}:00`).toISOString();
     const end_zeit = endStr ? new Date(`${datum}T${endStr}:00`).toISOString() : null;
-    let gesamt_minuten = 0;
-    if (end_zeit) {
-      gesamt_minuten = Math.max(0, Math.round((new Date(end_zeit) - new Date(start_zeit)) / 60000));
-    }
-
+    const gesamt_minuten = end_zeit ? Math.max(0, Math.round((new Date(end_zeit) - new Date(start_zeit)) / 60000)) : 0;
     const opt = this._editProjektOpts?.[projektIdx] || { id: null, label: null };
 
     try {
@@ -991,8 +1283,18 @@ const ZeiterfassungModule = {
         notiz: notiz || null,
       });
       showToast('Eintrag aktualisiert', 'success');
-      this._allEntries = await DB.getAll('zeiterfassung', { user_id: Auth.userId() });
-      this.renderUserTab();
+
+      if (this._editContext === 'team' && this._teamMemberUserId) {
+        this._editContext = null;
+        this._teamMemberEntries = await DB.getAll('zeiterfassung', { user_id: this._teamMemberUserId });
+        const users = await DB.getAll('users');
+        const user = users.find(u => u.id === this._teamMemberUserId) || { name: '—', position: '—' };
+        this._renderTeamMemberDetail(user, this._teamMemberEntries);
+      } else {
+        this._editContext = null;
+        this._allEntries = await DB.getAll('zeiterfassung', { user_id: Auth.userId() });
+        this.renderUserTab();
+      }
     } catch (e) { showToast('Fehler: ' + e.message, 'error'); }
   },
 
