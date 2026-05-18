@@ -446,12 +446,15 @@ const ZeiterfassungModule = {
     } catch {}
 
     this._teamMemberEntries = allEntries;
-    const user = users.find(u => u.id === userId) || { name: '—', position: '—' };
+    this._teamMemberUser = users.find(u => u.id === userId) || { name: '—', position: '—' };
 
-    this._renderTeamMemberDetail(user, allEntries);
+    this._renderTeamMemberDetail();
   },
 
-  _renderTeamMemberDetail(user, allEntries) {
+  _renderTeamMemberDetail() {
+    const user      = this._teamMemberUser;
+    const allEntries = this._teamMemberEntries;
+
     const monthLabel = m => new Date(m + '-01').toLocaleDateString('de-DE', { month: 'long', year: 'numeric' });
     const months = [...new Set(allEntries.map(e => e.datum?.slice(0,7)).filter(Boolean))].sort().reverse();
     if (!months.includes(this._teamMemberMonth)) months.unshift(this._teamMemberMonth);
@@ -460,11 +463,10 @@ const ZeiterfassungModule = {
       .filter(e => e.datum?.startsWith(this._teamMemberMonth))
       .sort((a,b) => a.datum > b.datum ? 1 : -1);
 
-    const total      = monatsEintraege.reduce((s, e) => s + (e.gesamt_minuten || 0), 0);
+    const total       = monatsEintraege.reduce((s, e) => s + (e.gesamt_minuten || 0), 0);
     const arbeitstage = [...new Set(monatsEintraege.map(e => e.datum))].length;
-    const totalAll   = allEntries.reduce((s, e) => s + (e.gesamt_minuten || 0), 0);
+    const totalAll    = allEntries.reduce((s, e) => s + (e.gesamt_minuten || 0), 0);
 
-    /* Heute und diese Woche */
     const todayStr = today();
     const now = new Date();
     const weekStart = new Date(now);
@@ -477,9 +479,8 @@ const ZeiterfassungModule = {
       : allEntries.find(e => e.datum === todayStr && !!e.end_zeit) ? 'done' : 'absent';
 
     document.getElementById('zeit-user-tab').innerHTML = `
-      <!-- Header mit Zurück -->
       <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem;flex-wrap:wrap">
-        <button onclick="ZeiterfassungModule.renderTeamTab()" style="display:inline-flex;align-items:center;gap:.4rem;background:var(--card);border:1px solid var(--card-border);border-radius:10px;padding:.45rem .9rem;font-size:.82rem;font-weight:600;color:var(--text-muted);cursor:pointer;box-shadow:var(--shadow);transition:all .15s ease" onmouseover="this.style.color='var(--navy)'" onmouseout="this.style.color='var(--text-muted)'">
+        <button onclick="ZeiterfassungModule.renderTeamTab()" style="display:inline-flex;align-items:center;gap:.4rem;background:var(--card);border:1px solid var(--card-border);border-radius:10px;padding:.45rem .9rem;font-size:.82rem;font-weight:600;color:var(--text-muted);cursor:pointer;box-shadow:var(--shadow)">
           ← Zurück
         </button>
         <div style="display:flex;align-items:center;gap:.85rem;flex:1">
@@ -492,7 +493,6 @@ const ZeiterfassungModule = {
         </div>
       </div>
 
-      <!-- Stats -->
       <div class="zeit-stat-row" style="margin-bottom:1.25rem">
         <div class="zeit-stat-card">
           <div class="zeit-stat-label">Heute</div>
@@ -512,10 +512,9 @@ const ZeiterfassungModule = {
         </div>
       </div>
 
-      <!-- Monatsfilter -->
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:.5rem">
         <div style="font-weight:700;font-size:.95rem;color:var(--text)">${monthLabel(this._teamMemberMonth)}</div>
-        <select class="form-select" style="width:auto" onchange="ZeiterfassungModule._teamMemberMonth=this.value;ZeiterfassungModule._renderTeamMemberDetail(${JSON.stringify(user)},ZeiterfassungModule._teamMemberEntries)">
+        <select class="form-select" style="width:auto" onchange="ZeiterfassungModule._teamMemberMonth=this.value;ZeiterfassungModule._renderTeamMemberDetail()">
           ${months.map(m => `<option value="${m}" ${m===this._teamMemberMonth?'selected':''}>${monthLabel(m)}</option>`).join('')}
         </select>
       </div>
@@ -641,8 +640,8 @@ const ZeiterfassungModule = {
         showToast('Eintrag gelöscht', 'success');
         this._teamMemberEntries = await DB.getAll('zeiterfassung', { user_id: this._teamMemberUserId });
         const users = await DB.getAll('users');
-        const user = users.find(u => u.id === this._teamMemberUserId) || { name: '—', position: '—' };
-        this._renderTeamMemberDetail(user, this._teamMemberEntries);
+        this._teamMemberUser = users.find(u => u.id === this._teamMemberUserId) || { name: '—', position: '—' };
+        this._renderTeamMemberDetail();
       } catch (e) {
         closeModal();
         showToast('Fehler: ' + e.message, 'error');
@@ -720,9 +719,9 @@ const ZeiterfassungModule = {
       });
       showToast('Eintrag hinzugefügt', 'success');
       this._teamMemberEntries = await DB.getAll('zeiterfassung', { user_id: userId });
-      const users = await DB.getAll('users');
-      const user = users.find(u => u.id === userId) || { name: '—', position: '—' };
-      this._renderTeamMemberDetail(user, this._teamMemberEntries);
+      const usersR = await DB.getAll('users');
+      this._teamMemberUser = usersR.find(u => u.id === userId) || { name: '—', position: '—' };
+      this._renderTeamMemberDetail();
     } catch (e) { showToast('Fehler: ' + e.message, 'error'); }
   },
 
@@ -1287,9 +1286,9 @@ const ZeiterfassungModule = {
       if (this._editContext === 'team' && this._teamMemberUserId) {
         this._editContext = null;
         this._teamMemberEntries = await DB.getAll('zeiterfassung', { user_id: this._teamMemberUserId });
-        const users = await DB.getAll('users');
-        const user = users.find(u => u.id === this._teamMemberUserId) || { name: '—', position: '—' };
-        this._renderTeamMemberDetail(user, this._teamMemberEntries);
+        const usersE = await DB.getAll('users');
+        this._teamMemberUser = usersE.find(u => u.id === this._teamMemberUserId) || { name: '—', position: '—' };
+        this._renderTeamMemberDetail();
       } else {
         this._editContext = null;
         this._allEntries = await DB.getAll('zeiterfassung', { user_id: Auth.userId() });
