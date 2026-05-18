@@ -1011,11 +1011,15 @@ const ZeiterfassungModule = {
         showToast('Eintrag gelöscht', 'success');
         this._allEntries = await DB.getAll('zeiterfassung', { user_id: Auth.userId() });
 
-        /* Wenn der gelöschte Eintrag von heute war und keine weiteren Einträge
-           für heute existieren: State auf idle zurücksetzen → Timer zeigt 0 */
+        /* Wenn alle Einträge von heute gelöscht: Timer auf 0 zurücksetzen */
         const nochHeuteEintraege = this._allEntries.filter(e => e.datum === today());
         if (entry.datum === today() && nochHeuteEintraege.length === 0) {
+          clearInterval(this.timerInterval);
+          this.timerInterval = null;
           this._resetStateLS();
+          /* Sidebar-Timer sofort auf 0 setzen */
+          const timerEl = document.getElementById('sidebar-timer');
+          if (timerEl) timerEl.textContent = '00:00:00';
           this.updateWidget();
         }
 
