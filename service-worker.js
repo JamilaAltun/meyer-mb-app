@@ -1,4 +1,4 @@
-const CACHE_NAME = 'meyer-metallbau-v11';
+const CACHE_NAME = 'meyer-metallbau-v13';
 
 self.addEventListener('install', () => self.skipWaiting());
 
