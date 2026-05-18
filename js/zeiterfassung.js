@@ -42,7 +42,12 @@ const ZeiterfassungModule = {
 
   /* ── Start ── */
   async start() {
-    if (this.state.status !== 'idle' && this.state.status !== 'paused') return;
+    if (this.state.status !== 'idle' && this.state.status !== 'paused' && this.state.status !== 'gone') return;
+
+    if (this.state.status === 'gone') {
+      /* Neue Schicht nach Feierabend: State zurücksetzen */
+      this._resetStateLS();
+    }
 
     if (this.state.status === 'idle') {
       await this.showProjektPicker();
@@ -118,7 +123,7 @@ const ZeiterfassungModule = {
     this.state.pauseStart = now;
     this.state.log.push({ type: 'pause', time: now });
     this.saveState();
-    clearInterval(this.timerInterval);
+    /* Interval läuft weiter — zeigt live Pausendauer an */
     this.updateWidget();
     this.renderIfActive();
   },
@@ -171,6 +176,12 @@ const ZeiterfassungModule = {
     this.updateTimerDisplay();
   },
 
+  /* ── Pausendauer berechnen ── */
+  getPauseDuration() {
+    if (!this.state.pauseStart) return 0;
+    return Math.max(0, Date.now() - new Date(this.state.pauseStart).getTime());
+  },
+
   /* ── Elapsed berechnen ── */
   getElapsed() {
     if (!this.state.startTime) return 0;
@@ -190,8 +201,12 @@ const ZeiterfassungModule = {
   updateTimerDisplay() {
     const el = document.getElementById('sidebar-timer');
     if (!el) return;
-    if (this.state.status === 'idle' || this.state.status === 'gone') {
-      el.textContent = this.state.status === 'gone' ? this.formatElapsed(this.getElapsed()) : '00:00:00';
+    if (this.state.status === 'idle') {
+      el.textContent = '00:00:00';
+    } else if (this.state.status === 'gone') {
+      el.textContent = this.formatElapsed(this.getElapsed());
+    } else if (this.state.status === 'paused') {
+      el.textContent = this.formatElapsed(this.getPauseDuration());
     } else {
       el.textContent = this.formatElapsed(this.getElapsed());
     }
@@ -220,9 +235,11 @@ const ZeiterfassungModule = {
       startBtn.textContent = '▶';
       pauseBtn.classList.add('hidden');
       stopBtn.classList.remove('hidden');
+      if (!this.timerInterval) this.startTimer();
     } else if (this.state.status === 'gone') {
       label.textContent = 'Feierabend';
-      startBtn.classList.add('hidden');
+      startBtn.classList.remove('hidden');
+      startBtn.textContent = '▶';
       pauseBtn.classList.add('hidden');
       stopBtn.classList.add('hidden');
     } else {
@@ -255,7 +272,12 @@ const ZeiterfassungModule = {
 
   updateModuleTimer() {
     const el = document.getElementById('zeit-module-timer');
-    if (el) el.textContent = this.formatElapsed(this.getElapsed());
+    if (!el) return;
+    if (this.state.status === 'paused') {
+      el.textContent = this.formatElapsed(this.getPauseDuration());
+    } else {
+      el.textContent = this.formatElapsed(this.getElapsed());
+    }
   },
 
   /* ── Tabs ── */
@@ -423,7 +445,7 @@ const ZeiterfassungModule = {
             ${totalHeute ? `<span style="font-weight:700;color:var(--navy)">${formatDuration(totalHeute)}</span>` : ''}
           </div>
           ${this.renderTodayLog(heutes)}
-        </div>` : this.state.log.length ? `
+        </div>` : (this.state.log.length && this.state.status !== 'idle' && this.state.status !== 'gone') ? `
         <div class="card">
           <div class="card-header"><span class="card-title">Heutiger Tag</span></div>
           ${this.renderCurrentLog()}
@@ -675,18 +697,35 @@ const ZeiterfassungModule = {
     if (s === 'paused') return `
       <button class="zeit-big-btn zeit-btn-weiter-lg" id="mod-start-btn">▶ Weiter</button>
       <button class="zeit-big-btn zeit-btn-gehen-lg" id="mod-stop-btn">Gehen</button>`;
-    if (s === 'gone') return `<div style="opacity:.7;font-size:.9rem">Feierabend</div>`;
+    if (s === 'gone') return `<button class="zeit-big-btn zeit-btn-start-lg" id="mod-start-btn">▶ Neue Schicht</button>`;
     return '';
   },
 
   renderCurrentLog() {
     if (!this.state.log.length) return '<p style="color:var(--text-muted);padding:1rem">Noch keine Einträge</p>';
-    const icons = { start: '▶ Start', pause: '⏸ Pause', weiter: '▶ Weiter', gehen: 'Gehen' };
-    return this.state.log.map(l => `
-      <div class="zeit-log-item">
-        <span class="zeit-log-type">${icons[l.type] || l.type}</span>
-        <span class="zeit-log-time">${formatTime(l.time)}</span>
-      </div>`).join('');
+    const items = [];
+    for (let i = 0; i < this.state.log.length; i++) {
+      const l = this.state.log[i];
+      if (l.type === 'pause') {
+        const nextWeiter = this.state.log.slice(i + 1).find(x => x.type === 'weiter');
+        const pauseEnd = nextWeiter ? new Date(nextWeiter.time) : (this.state.status === 'paused' ? new Date() : null);
+        const pauseMs = pauseEnd ? pauseEnd - new Date(l.time) : null;
+        const pauseLabel = pauseMs !== null ? formatDuration(Math.round(pauseMs / 60000)) : 'läuft...';
+        items.push(`<div class="zeit-log-item">
+          <span class="zeit-log-type">⏸ Pause</span>
+          <span class="zeit-log-time">${pauseLabel}</span>
+        </div>`);
+      } else if (l.type === 'weiter') {
+        /* wird in der Pause-Zeile angezeigt */
+      } else {
+        const icons = { start: '▶ Start', gehen: 'Gehen' };
+        items.push(`<div class="zeit-log-item">
+          <span class="zeit-log-type">${icons[l.type] || l.type}</span>
+          <span class="zeit-log-time">${formatTime(l.time)}</span>
+        </div>`);
+      }
+    }
+    return items.join('');
   },
 
   renderTodayLog(entries) {
@@ -943,16 +982,21 @@ const ZeiterfassungModule = {
   },
 
   /* ── Eintrag löschen ── */
-  async deleteEntry(id) {
+  deleteEntry(id) {
     const entry = this._allEntries.find(e => e.id === id);
     if (!entry) return;
-    if (!confirm(`Eintrag vom ${formatDate(entry.datum)} (${formatTime(entry.start_zeit)}) wirklich löschen?`)) return;
-    try {
-      await DB.delete('zeiterfassung', id);
-      showToast('Eintrag gelöscht', 'success');
-      this._allEntries = await DB.getAll('zeiterfassung', { user_id: Auth.userId() });
-      this.renderUserTab();
-    } catch (e) { showToast('Fehler: ' + e.message, 'error'); }
+    confirmDelete(`Eintrag vom ${formatDate(entry.datum)} (${formatTime(entry.start_zeit)})`, async () => {
+      try {
+        await DB.delete('zeiterfassung', id);
+        closeModal();
+        showToast('Eintrag gelöscht', 'success');
+        this._allEntries = await DB.getAll('zeiterfassung', { user_id: Auth.userId() });
+        this.renderUserTab();
+      } catch (e) {
+        closeModal();
+        showToast('Fehler: ' + e.message, 'error');
+      }
+    });
   },
 
   /* ── Eintrag manuell hinzufügen ── */
